@@ -110,7 +110,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             State currentState = getCaller().getCurrentState();
 
             if(getCaller().isVerbose()) {
-                log("> try-consume: " + evt.getName() + (evt.isDeferred() ? " (previously deferred)" : "") + ", fsm: " + level(getCaller()));
+                log("> try-consume: " + evt.getName() +
+                        (evt.isDeferred() ? " (previously deferred)" : "") + ", fsm: " + level(getCaller()));
                 log("  -> in state: " + level(getCaller()) + ":" + currentState.getName());
             }
 
@@ -152,6 +153,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
                 log("  -> found consumer: " + level(getCaller()) + ":" + consumer.getTarget().getName());
                 log("     on-thread:      " + Thread.currentThread().getName());
+
+                // TODO 11.07.2020 match target depth, i.e., include guards + actions until parent fsm between source and target are equal
 
                 performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
 
@@ -257,32 +260,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
         getCaller().setCurrentState(newState);
         stateExited.put(newState, false);
-
-        // trigger event in children (nested fsm regions)
-//        triggerEventInChildren(evt, newState);
     }
-//
-//    private void triggerEventInChildren(Event evt, State newState) {
-//        if(newState instanceof FSMState) {
-//            FSMState fsmState = (FSMState) newState;
-//
-//            for(FSM childFSM : fsmState.getFSMs()) {
-//
-//                // process the event in the nested machine
-//                if (childFSM != null) {
-//
-//                    // create a new execute for child fsm if it doesn't exist yet
-//                    if (childFSM.getExecutor() == null) {
-//                        getCaller().getExecutor().newChild(childFSM);
-//                    }
-//
-//                    childFSM.getExecutor().process(evt.getName(), evt.getArgs().
-//                            toArray(new Object[evt.getArgs().size()])
-//                    );
-//                }
-//            }
-//        }
-//    }
+
 
     private boolean executeDoActionOfNewState(Event evt, State oldState, State newState) {
         try {

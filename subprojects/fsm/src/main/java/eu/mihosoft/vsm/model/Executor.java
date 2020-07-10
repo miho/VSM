@@ -1,15 +1,7 @@
 package eu.mihosoft.vsm.model;
 
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-
 /**
- * Executoir interface for executing finite state machines (FSM).
+ * Executor interface for executing finite state machines (FSM).
  */
 public interface Executor {
 
