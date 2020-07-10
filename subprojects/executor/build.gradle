@@ -1,0 +1,40 @@
+buildscript {
+
+    ext.vmfPluginIntelliJIntegration = true
+
+    repositories {
+        mavenCentral()
+        jcenter()
+        mavenLocal()
+    }
+
+    dependencies {
+        classpath "eu.mihosoft.vmf:vmf-gradle-plugin:${rootProject.commonProps.get("vmf.version")}"
+    }
+}
+
+plugins {
+    id 'application'
+    id 'idea'
+}
+
+// load plugins
+apply plugin: 'eu.mihosoft.vmf'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    mavenLocal()
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+
+    compile project(":subprojects:fsm")
+}
+
+// compileTestJava.options.compilerArgs.add("--enable-preview")
+// compileTestJava.options.compilerArgs.add("-Xlint:preview")
+
+mainClassName = 'eu.mihosoft.vsm.executor.App'

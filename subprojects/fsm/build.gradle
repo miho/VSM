@@ -1,0 +1,54 @@
+buildscript {
+
+    ext.vmfPluginIntelliJIntegration = true
+
+    repositories {
+        mavenCentral()
+        jcenter()
+        mavenLocal()
+    }
+
+    dependencies {
+        classpath "eu.mihosoft.vmf:vmf-gradle-plugin:${rootProject.commonProps.get("vmf.version")}"
+    }
+}
+
+plugins {
+    id 'application'
+    id 'idea'
+}
+
+// load plugins
+apply plugin: 'eu.mihosoft.vmf'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    mavenLocal()
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+
+    implementation "eu.mihosoft.vmf:vmf:${rootProject.commonProps.get("vmf.version")}"
+}
+
+// set dependencies for intellij editor (otherwise vmf dir would be ignored)
+idea {
+    module {
+        dependencies {
+            compile group: 'eu.mihosoft.vmf', name: 'vmf', version: rootProject.commonProps.get("vmf.version")
+        }
+    }
+}
+
+
+
+// compileTestJava.options.compilerArgs.add("--enable-preview")
+
+compileTestJava.options.compilerArgs.add("-Xlint:preview")
+
+
+
+mainClassName = 'com.biofluidix.fsm.App'
