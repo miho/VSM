@@ -2,17 +2,16 @@ package eu.mihosoft.vsm.executor;
 
 import eu.mihosoft.vsm.model.*;
 
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 public class Executor implements eu.mihosoft.vsm.model.Executor {
 
-    private Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
+    private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
     private Thread doActionThread;
     private CompletableFuture<Void> doActionFuture;
+    private Map<State, Boolean> stateExited = new HashMap<>();
 
     private final FSM fsm;
 
@@ -114,30 +113,20 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 for(FSM childFSM : fsmState.getFSMs() ) {
                     if (childFSM != null) {
 
-                        // create a new execute for child fsm if it doesn't exist yet
-                        if (childFSM.getExecutor() == null) {
-                            getCaller().getExecutor().newChild(childFSM);
-                        }
-
-                        // if we consumed it then break and return that we successfully consumed the event
-                        childFSM.getExecutor().reset();
-                        childFSM.setRunning(true);
-                        childFSM.getExecutor().trigger(evt.getName(), evt.getArgs().toArray(new Object[evt.getArgs().size()]));
+                        // if we consumed it then consume it
+                        childFSM.getExecutor().trigger(evt);
 
                         if (childFSM.getExecutor().processRemainingEvents()) {
                             log(" -> consumed");
-                            consumed = true;
                             iter.remove();
-                            break;
-                        } else {
-                            log(" -> reset");
-                            childFSM.getExecutor().reset();
+                            consumed = true;
                         }
-                        childFSM.setRunning(false);
-                        //log("inner STEP: done.");
                     }
                 } // end for each child fsm
             }
+
+            // children consumed event
+            if(consumed) continue;
 
             Transition consumer = currentState.getOutgoingTransitions().
                     stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).findFirst().orElse(null);
@@ -160,19 +149,20 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
                 if(getCaller().getFinalState().contains(getCaller().getCurrentState())) {
                     log("  -> final state reached. stopping.");
-
+                    exitDoActionOfOldState(evt,currentState,null);
                     getCaller().setRunning(false);
-                    break;
-                }
-
-                if(evt.getAction()!=null) {
-                    evt.getAction().execute(evt, consumer);
                 }
 
                 // if we consume the current event, pop the corresponding entry in the queue
-               if(!consumed) iter.remove();
+                if(!consumed) {
+                    iter.remove();
+                    consumed = true;
 
-                consumed = true;
+                    if(evt.getAction()!=null) {
+                        evt.getAction().execute(evt, consumer);
+                    }
+                }
+
             } else if(!consumed) {
                 if(guardMatches && defers(getCaller().getCurrentState(), evt)) {
                     log("  -> deferring: " + evt.getName());
@@ -236,16 +226,34 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             return;
         }
 
+        // enter children states
+        if(newState instanceof FSMState) {
+            FSMState fsmState = (FSMState) newState;
+            for(FSM childFSM : fsmState.getFSMs()) {
+
+                // create a new execute for child fsm if it doesn't exist yet
+                if (childFSM.getExecutor() == null) {
+                    getCaller().getExecutor().newChild(childFSM);
+                }
+
+                Executor executor = (Executor) childFSM.getExecutor();
+                executor.reset();
+                childFSM.setRunning(true);
+            }
+        }
+
         // execute do-action
         if (!executeDoActionOfNewState(evt, oldState, newState)) return;
 
         // transition done, set new current state
+
         getCaller().setCurrentState(newState);
+        stateExited.put(newState, false);
 
         // trigger event in children (nested fsm regions)
-        // triggerEventInChildren(evt, newState);
+//        triggerEventInChildren(evt, newState);
     }
-
+//
 //    private void triggerEventInChildren(Event evt, State newState) {
 //        if(newState instanceof FSMState) {
 //            FSMState fsmState = (FSMState) newState;
@@ -301,7 +309,9 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     }
 
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
-        if(oldState!=null) {
+
+        if(oldState!=null && !(stateExited.get(oldState)==null?false:stateExited.get(oldState))) {
+
             try {
                 if (doActionThread != null && doActionFuture != null) {
                     doActionThread.interrupt();
@@ -321,6 +331,15 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 doActionFuture = null;
             }
 
+            // exit children states
+            if(oldState instanceof FSMState) {
+                FSMState fsmState = (FSMState) oldState;
+                for(FSM childFSM : fsmState.getFSMs()) {
+                    Executor executor = (Executor) childFSM.getExecutor();
+                    executor.exitDoActionOfOldState(evt, childFSM.getCurrentState(), null);
+                }
+            }
+
             try {
                 StateAction exitAction = oldState.getOnExitAction();
                 if(exitAction!=null) {
@@ -330,17 +349,11 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 handleExecutionError(evt, oldState, newState, ex);
                 return false;
             } finally {
-                //
+                stateExited.put(oldState, true);
             }
 
-            if(oldState instanceof FSMState) {
-                FSMState fsmState = (FSMState) oldState;
-                for(FSM childFSM : fsmState.getFSMs()) {
-                    Executor executor = (Executor) childFSM.getExecutor();
-                    executor.exitDoActionOfOldState(evt, childFSM.getCurrentState(), null);
-                }
-            }
         } // end if oldState != null
+
         return true;
     }
 

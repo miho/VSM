@@ -109,6 +109,8 @@ interface State extends FSMChild {
 
     @DefaultValue("java.time.Duration.ofSeconds(10)")
     Duration getCancellationTimeout();
+
+//    boolean isExited();
 }
 
 interface FSMState extends State {

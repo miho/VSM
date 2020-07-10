@@ -61,13 +61,24 @@ public class App {
                 .withName("State C")
                 .withOnEntryAction((s, e) -> System.out.println("enter state c"))
                 .withOnExitAction((s, e) -> System.out.println("exit state c"))
+                .withDoAction((s, e) -> {
+                    try {
+                        System.out.println("!!! enter");
+                        Thread.sleep(1000000);
+                    } catch (InterruptedException interruptedException) {
+                        System.out.println("!!! interrupted");
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        System.out.println("!!! exit");
+                    }
+                })
                 .withFSMs(
                         FSM.newBuilder()
                                 .withName("FSM C1")
 //                                .withVerbose(true)
                                 .withOwnedState(stateCA1, stateCB1)
                                 .withInitialState(stateCA1)
-//                                .withFinalState(stateCB1)
+                                .withFinalState(stateCB1)
                                 .withTransitions(
                                         Transition.newBuilder()
                                                 .withSource(stateCA1)
@@ -81,7 +92,7 @@ public class App {
 //                                .withVerbose(true)
                                 .withOwnedState(stateCA2, stateCB2)
                                 .withInitialState(stateCA2)
-//                                .withFinalState(stateCB2)
+                                .withFinalState(stateCB2)
                                 .withTransitions(
                                         Transition.newBuilder()
                                                 .withSource(stateCA2)
@@ -114,16 +125,23 @@ public class App {
                                 .withTarget(stateA)
                                 .withTrigger("myEvent1")
                                 .build()
+                        ,
+                        Transition.newBuilder()
+                                .withSource(stateC)
+                                .withTarget(stateA)
+                                .withTrigger("fsm:on-do-action-done")
+                                .build()
                 )
                 .build();
 
         Executor executor = Executor.newInstance(fsm);
         executor.startAsync();
 
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName()));
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName()));
+        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+//        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+//        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
     }
 
 }
