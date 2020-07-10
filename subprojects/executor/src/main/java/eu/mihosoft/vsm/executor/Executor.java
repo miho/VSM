@@ -160,6 +160,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
                 if(getCaller().getFinalState().contains(getCaller().getCurrentState())) {
                     log("  -> final state reached. stopping.");
+
                     getCaller().setRunning(false);
                     break;
                 }
@@ -169,10 +170,10 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 }
 
                 // if we consume the current event, pop the corresponding entry in the queue
-                iter.remove();
+               if(!consumed) iter.remove();
 
                 consumed = true;
-            } else  {
+            } else if(!consumed) {
                 if(guardMatches && defers(getCaller().getCurrentState(), evt)) {
                     log("  -> deferring: " + evt.getName());
                     evt.setDeferred(true);
@@ -242,30 +243,30 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         getCaller().setCurrentState(newState);
 
         // trigger event in children (nested fsm regions)
-        triggerEventInChildren(evt, newState);
+        // triggerEventInChildren(evt, newState);
     }
 
-    private void triggerEventInChildren(Event evt, State newState) {
-        if(newState instanceof FSMState) {
-            FSMState fsmState = (FSMState) newState;
-
-            for(FSM childFSM : fsmState.getFSMs()) {
-
-                // process the event in the nested machine
-                if (childFSM != null) {
-
-                    // create a new execute for child fsm if it doesn't exist yet
-                    if (childFSM.getExecutor() == null) {
-                        getCaller().getExecutor().newChild(childFSM);
-                    }
-
-                    childFSM.getExecutor().process(evt.getName(), evt.getArgs().
-                            toArray(new Object[evt.getArgs().size()])
-                    );
-                }
-            }
-        }
-    }
+//    private void triggerEventInChildren(Event evt, State newState) {
+//        if(newState instanceof FSMState) {
+//            FSMState fsmState = (FSMState) newState;
+//
+//            for(FSM childFSM : fsmState.getFSMs()) {
+//
+//                // process the event in the nested machine
+//                if (childFSM != null) {
+//
+//                    // create a new execute for child fsm if it doesn't exist yet
+//                    if (childFSM.getExecutor() == null) {
+//                        getCaller().getExecutor().newChild(childFSM);
+//                    }
+//
+//                    childFSM.getExecutor().process(evt.getName(), evt.getArgs().
+//                            toArray(new Object[evt.getArgs().size()])
+//                    );
+//                }
+//            }
+//        }
+//    }
 
     private boolean executeDoActionOfNewState(Event evt, State oldState, State newState) {
         try {
@@ -330,6 +331,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 return false;
             } finally {
                 //
+            }
+
+            if(oldState instanceof FSMState) {
+                FSMState fsmState = (FSMState) oldState;
+                for(FSM childFSM : fsmState.getFSMs()) {
+                    Executor executor = (Executor) childFSM.getExecutor();
+                    executor.exitDoActionOfOldState(evt, childFSM.getCurrentState(), null);
+                }
             }
         } // end if oldState != null
         return true;

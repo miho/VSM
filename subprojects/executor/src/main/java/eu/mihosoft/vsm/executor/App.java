@@ -4,6 +4,7 @@
 package eu.mihosoft.vsm.executor;
 
 import eu.mihosoft.vsm.model.FSM;
+import eu.mihosoft.vsm.model.FSMState;
 import eu.mihosoft.vsm.model.State;
 import eu.mihosoft.vsm.model.Transition;
 
@@ -14,146 +15,115 @@ import java.util.concurrent.TimeoutException;
 public class App {
 
     public static void main(String[] a) throws InterruptedException {
-        State idleState = State.newBuilder().withName("idle").withOnEntryAction(
-                (s,e) -> {
-            System.out.println("Machine Idle State");
-        }).withDoAction((s,e)->{
-            while(!Thread.currentThread().isInterrupted()) {
-                System.out.println("still idle");
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException interruptedException) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }).build();
-
-        State cardInserted = State.newBuilder().withName("cardInserted")
-                .withOnEntryAction((s,e) -> {
-                    System.out.println("Card Inserted State");
-                }).build();
-
-        State pinEnteredState = State.newBuilder().withName("pinEntered")
-                .withOnEntryAction((s,e) -> {
-                    System.out.println("Pin Entered State");
-                }).build();
-
-        State amountRequested = State.newBuilder().withName("amountRequested")
-                .withOnEntryAction((s,e) -> {
-                    System.out.println("Amount Requested State");
-                }).build();
-
-        Transition insertCardTransition = Transition.newBuilder().withTrigger("insert-card")
-                .withGuard((t, evt)->{
-                    if(evt.getArgs().isEmpty()) return false;
-                    return Objects.equals("DE6594339437", evt.getArgs().get(0));
-                })
-                .withActions((s,e) -> {
-                    System.out.println("-> correct card inserted");
-                }).withSource(idleState).withTarget(cardInserted).build();
-
-        Transition enterPinTransition = Transition.newBuilder().withTrigger("enter-pin")
-                .withGuard((t,evt) -> {
-                    System.out.println("-> pin entered");
-                    System.out.println("-> checking...");
-
-                    try {
-                        Thread.sleep(2500);
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-
-                    if(evt.getArgs().isEmpty()) {
-                        return false;
-                    }
-
-                    return Objects.equals(1234, evt.getArgs().get(0));
-                }).withActions((s,e) -> {
-                    System.out.println("-> valid.");
-                }).withSource(cardInserted).withTarget(pinEnteredState).build();
-
-        Transition requestAmountTransition = Transition.newBuilder().withTrigger("request-amount")
-                .withActions((s,e) -> {
-                    System.out.println("-> amount-requested");
-                }).withSource(pinEnteredState).withTarget(amountRequested).build();
-
-        Transition moneyDispatchedTransition = Transition.newBuilder().withTrigger("dispatch-money")
-                .withActions((s,e) -> {
-                    System.out.println("-> checking whether requested amount is available");
-                    try {
-                        Thread.sleep(2500);
-                    } catch (InterruptedException ex) {
-                        // TODO Auto-generated catch block
-                        ex.printStackTrace();
-                    }
-                System.out.println("-> money-dispatched");
-            })
-            .withSource(amountRequested)
-            .withTarget(idleState)
-            .build();
-
-        State errorState = State.newBuilder()
-                .withName("Error")
-                .withOnEntryAction((state, event)->{
-                    Exception ex = (Exception) event.getArgs().get(0);
-                    if(ex instanceof java.util.concurrent.TimeoutException) {
-                        state.getOwningFSM().getExecutor().trigger("recovered");
-                    }
-                    System.out.println("ERROR: exception: "+ ex);
-                })
+        State stateA = State.newBuilder()
+                .withName("State A")
+                .withOnEntryAction((s, e) -> System.out.println("enter state a"))
+//                .withDoAction()
+                .withOnExitAction((s, e) -> System.out.println("exit state a"))
+                .build();
+        State stateB = State.newBuilder()
+                .withName("State B")
+                .withOnEntryAction((s, e) -> System.out.println("enter state b"))
+//                .withDoAction()
+                .withOnExitAction((s, e) -> System.out.println("exit state b"))
                 .build();
 
-        Transition recoveredTransition = Transition.newBuilder().withTrigger("recovered")
-                .withActions((s,e) -> {
-                    System.out.println("-> recovered");
-                })
-                .withSource(errorState)
-                .withTarget(idleState)
+        State stateCA1 = State.newBuilder()
+                .withName("State CA1")
+                .withOnEntryAction((s, e) -> System.out.println("  enter state ca1"))
+//                .withDoAction()
+                .withOnExitAction((s, e) -> System.out.println("  exit state ca1"))
+                .build();
+
+        State stateCB1 = State.newBuilder()
+                .withName("State CB1")
+                .withOnEntryAction((s, e) -> System.out.println("  enter state cb1"))
+//                .withDoAction()
+                .withOnExitAction((s, e) -> System.out.println("  exit state cb1"))
+                .build();
+
+        State stateCA2 = State.newBuilder()
+                .withName("State CA2")
+                .withOnEntryAction((s, e) -> System.out.println("  enter state ca2"))
+//                .withDoAction()
+                .withOnExitAction((s, e) -> System.out.println("  exit state ca2"))
+                .build();
+
+        State stateCB2 = State.newBuilder()
+                .withName("State CB2")
+                .withOnEntryAction((s, e) -> System.out.println("  enter state cb2"))
+//                .withDoAction()
+                .withOnExitAction((s, e) -> System.out.println("  exit state cb2"))
+                .build();
+
+
+        FSMState stateC = FSMState.newBuilder()
+                .withName("State C")
+                .withOnEntryAction((s, e) -> System.out.println("enter state c"))
+                .withOnExitAction((s, e) -> System.out.println("exit state c"))
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("FSM C1")
+//                                .withVerbose(true)
+                                .withOwnedState(stateCA1, stateCB1)
+                                .withInitialState(stateCA1)
+//                                .withFinalState(stateCB1)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withSource(stateCA1)
+                                                .withTarget(stateCB1)
+                                                .withTrigger("myEvent1")
+                                                .build()
+                                )
+                                .build(),
+                        FSM.newBuilder()
+                                .withName("FSM C2")
+//                                .withVerbose(true)
+                                .withOwnedState(stateCA2, stateCB2)
+                                .withInitialState(stateCA2)
+//                                .withFinalState(stateCB2)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withSource(stateCA2)
+                                                .withTarget(stateCB2)
+                                                .withTrigger("myEvent2")
+                                                .build()
+                                )
+                                .build()
+                )
                 .build();
 
         FSM fsm = FSM.newBuilder()
-            .withName("ATM")
-            .withOwnedState(
-                idleState, cardInserted, pinEnteredState, amountRequested, errorState
-             )
-            .withInitialState(idleState)
-//                .withErrorState(errorState)
-            .withTransitions(
-                insertCardTransition,
-                enterPinTransition,
-                requestAmountTransition,
-                moneyDispatchedTransition,
-                recoveredTransition
-            )
-            .withVerbose(true)
-            .build();
-
-            fsm.vmf().reflect().propertyByName("currentState").orElseThrow().addChangeListener(change->{
-                var oldV = (State)change.propertyChange().orElseThrow().oldValue();
-                var newV = (State)change.propertyChange().orElseThrow().newValue();
-                System.out.println("> transitioned from " + (oldV==null?"<undefined>":oldV.getName()) + " to " + newV.getName());
-            });
-
+                .withName("FSM")
+//                .withVerbose(true)
+                .withInitialState(stateA)
+                .withOwnedState(stateA,stateB,stateC)
+                .withTransitions(
+                        Transition.newBuilder()
+                                .withSource(stateA)
+                                .withTarget(stateB)
+                                .withTrigger("myEvent1")
+                                .build(),
+                        Transition.newBuilder()
+                                .withSource(stateB)
+                                .withTarget(stateC)
+                                .withTrigger("myEvent2")
+                                .build(),
+                        Transition.newBuilder()
+                                .withSource(stateC)
+                                .withTarget(stateA)
+                                .withTrigger("myEvent1")
+                                .build()
+                )
+                .build();
 
         Executor executor = Executor.newInstance(fsm);
-        Thread t = executor.startAsync();
+        executor.startAsync();
 
-        Thread.sleep(1500);
-
-        executor.trigger("insert-card", "DE6594339437");
-
-        Thread.sleep(2500);
-
-        executor.trigger("enter-pin",1234);
-
-        Thread.sleep(3500);
-
-        executor.trigger("request-amount", 350);
-
-        Thread.sleep(2500);
-
-        executor.trigger("dispatch-money", 350);
+        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName()));
+        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName()));
+        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName()));
+        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName()));
     }
 
 }
