@@ -49,19 +49,18 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     public boolean process(String evt, Object... args) {
 
-        if(getCaller().isRunning()) {
-            throw new RuntimeException(
-                "Cannot call 'process()' if machine is already running,"+
-                " try calling trigger(). The 'process()' method triggers and" +
-                        " processes the event in a single method call.");
-        }
+//        if() {
+//            throw new RuntimeException(
+//                "Cannot call 'process()' if machine is already running,"+
+//                " try calling trigger(). The 'process()' method triggers and" +
+//                        " processes the event in a single method call.");
+//        }
 
         try {
-            getCaller().setRunning(true);
             trigger(evt, args);
             return processRemainingEvents();
         } finally {
-            getCaller().setRunning(false);
+            //
         }
     }
 
@@ -102,7 +101,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             State currentState = getCaller().getCurrentState();
 
             if(getCaller().isVerbose()) {
-                log("> try-consume: " + evt.getName() + (evt.isDeferred() ? " (previously deferred)" : ""));
+                log("> try-consume: " + evt.getName() + (evt.isDeferred() ? " (previously deferred)" : "") + ", fsm: " + level(getCaller()));
                 log("  -> in state: " + level(getCaller()) + ":" + currentState.getName());
             }
 
@@ -113,7 +112,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 for(FSM childFSM : fsmState.getFSMs() ) {
                     if (childFSM != null) {
 
-                        // if we consumed it then consume it
+                        // if we consumed it then remove it
                         childFSM.getExecutor().trigger(evt);
 
                         if (childFSM.getExecutor().processRemainingEvents()) {
@@ -281,7 +280,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             StateAction doAction = newState.getDoAction();
             if(doAction!=null) {
                 Runnable doActionDone = ()->{
-                    getCaller().getExecutor().trigger("fsm:on-do-action-done", newState);
+                    evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").build());
+//                    getCaller().getExecutor().trigger("fsm:on-do-action-done: " + newState.getName(), newState);
+//                    Transition consumer = newState.getOutgoingTransitions().
+//                            stream().filter(t -> Objects.equals(t.getTrigger(), "fsm:on-do-action-done")).findFirst().orElse(null);
+//
+//                    if(consumer!=null) performStateTransition(Event.newBuilder().withName("fsm:on-do-action-done").build(), newState, consumer.getTarget(),consumer);
                 };
                 doActionFuture = new CompletableFuture<>();
                 doActionThread = new Thread(()->{
@@ -299,7 +303,13 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 doActionThread.start();
             } else {
                 // no do-action means, we are done after onEnter()
-                getCaller().getExecutor().trigger("fsm:on-do-action-done", newState);
+                evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").build());
+                //getCaller().getExecutor().trigger("fsm:on-do-action-done: " + newState.getName(), newState);
+//
+//                Transition consumer = newState.getOutgoingTransitions().
+//                        stream().filter(t -> Objects.equals(t.getTrigger(), "fsm:on-do-action-done")).findFirst().orElse(null);
+//
+//                if(consumer!=null) performStateTransition(Event.newBuilder().withName("fsm:on-do-action-done").build(), newState, consumer.getTarget(),consumer);
             }
         } catch(Exception ex) {
             handleExecutionError(evt, oldState, newState, ex);

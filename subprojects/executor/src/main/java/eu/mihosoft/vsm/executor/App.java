@@ -64,7 +64,7 @@ public class App {
                 .withDoAction((s, e) -> {
                     try {
                         System.out.println("!!! enter");
-                        Thread.sleep(1000000);
+                        Thread.sleep(10000);
                     } catch (InterruptedException interruptedException) {
                         System.out.println("!!! interrupted");
                         Thread.currentThread().interrupt();
@@ -78,7 +78,7 @@ public class App {
 //                                .withVerbose(true)
                                 .withOwnedState(stateCA1, stateCB1)
                                 .withInitialState(stateCA1)
-                                .withFinalState(stateCB1)
+//                                .withFinalState(stateCB1)
                                 .withTransitions(
                                         Transition.newBuilder()
                                                 .withSource(stateCA1)
@@ -92,7 +92,7 @@ public class App {
 //                                .withVerbose(true)
                                 .withOwnedState(stateCA2, stateCB2)
                                 .withInitialState(stateCA2)
-                                .withFinalState(stateCB2)
+//                                .withFinalState(stateCB2)
                                 .withTransitions(
                                         Transition.newBuilder()
                                                 .withSource(stateCA2)
@@ -106,7 +106,7 @@ public class App {
 
         FSM fsm = FSM.newBuilder()
                 .withName("FSM")
-//                .withVerbose(true)
+                .withVerbose(true)
                 .withInitialState(stateA)
                 .withOwnedState(stateA,stateB,stateC)
                 .withTransitions(
@@ -140,7 +140,7 @@ public class App {
         executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
         executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
         executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-//        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
 //        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
     }
 
