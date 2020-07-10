@@ -78,4 +78,11 @@ public interface Executor {
      */
     Executor newChild(FSM fsm);
 
+    /**
+     * Indicates whether there are remaining events to be processed.
+     * @return {@code true} if there are remaining events to be processed; {@code false} otherwise
+     */
+    boolean hasRemainingEvents();
+
+
 }

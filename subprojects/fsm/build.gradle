@@ -14,7 +14,6 @@ buildscript {
 }
 
 plugins {
-    id 'application'
     id 'idea'
 }
 
@@ -46,9 +45,4 @@ idea {
 
 
 // compileTestJava.options.compilerArgs.add("--enable-preview")
-
-compileTestJava.options.compilerArgs.add("-Xlint:preview")
-
-
-
-mainClassName = 'com.biofluidix.fsm.App'
+// compileTestJava.options.compilerArgs.add("-Xlint:preview")

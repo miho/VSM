@@ -47,6 +47,15 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         evtQueue.add(event);
     }
 
+    public boolean process(String evt, EventConsumedAction onConsumed, Object... args) {
+        try {
+            trigger(evt, onConsumed, args);
+            return processRemainingEvents();
+        } finally {
+            //
+        }
+    }
+
     public boolean process(String evt, Object... args) {
 
 //        if() {
@@ -281,11 +290,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             if(doAction!=null) {
                 Runnable doActionDone = ()->{
                     evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").build());
-//                    getCaller().getExecutor().trigger("fsm:on-do-action-done: " + newState.getName(), newState);
-//                    Transition consumer = newState.getOutgoingTransitions().
-//                            stream().filter(t -> Objects.equals(t.getTrigger(), "fsm:on-do-action-done")).findFirst().orElse(null);
-//
-//                    if(consumer!=null) performStateTransition(Event.newBuilder().withName("fsm:on-do-action-done").build(), newState, consumer.getTarget(),consumer);
                 };
                 doActionFuture = new CompletableFuture<>();
                 doActionThread = new Thread(()->{
@@ -304,12 +308,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             } else {
                 // no do-action means, we are done after onEnter()
                 evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").build());
-                //getCaller().getExecutor().trigger("fsm:on-do-action-done: " + newState.getName(), newState);
-//
-//                Transition consumer = newState.getOutgoingTransitions().
-//                        stream().filter(t -> Objects.equals(t.getTrigger(), "fsm:on-do-action-done")).findFirst().orElse(null);
-//
-//                if(consumer!=null) performStateTransition(Event.newBuilder().withName("fsm:on-do-action-done").build(), newState, consumer.getTarget(),consumer);
             }
         } catch(Exception ex) {
             handleExecutionError(evt, oldState, newState, ex);
@@ -422,5 +420,27 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     @Override
     public eu.mihosoft.vsm.model.Executor newChild(FSM fsm) {
         return new Executor(fsm);
+    }
+
+    @Override
+    public boolean hasRemainingEvents() {
+        boolean eventsInQueue = evtQueue.isEmpty();
+        boolean actionsRunning = doActionThread!=null&&doActionThread.isAlive();
+
+        if(eventsInQueue) return true;
+        if(actionsRunning) return true;
+
+        State state = getCaller().getCurrentState();
+
+        if(state instanceof FSMState) {
+            FSMState fsmState = (FSMState) state;
+            boolean childrenExec = fsmState.getFSMs().stream().filter(fsm->fsm.getExecutor()!=null).
+                    map(fsm->fsm.getExecutor().hasRemainingEvents()).
+                    anyMatch(hasExec->hasExec);
+
+            return childrenExec;
+        }
+
+        return false;
     }
 }
