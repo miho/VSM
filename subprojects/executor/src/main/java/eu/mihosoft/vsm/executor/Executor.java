@@ -206,6 +206,100 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         if(oldState==newState && (consumer==null?false:consumer.isLocal())) {
             return; // don't perform enter & exit actions
         }
+
+        // exit do-action of oldState
+        if (!exitDoActionOfOldState(evt, oldState, newState)) return;
+
+        // execute transition action
+        if(consumer!=null) {
+            consumer.getActions().forEach(action -> {
+                try {
+                    // execute action
+                    action.execute(consumer, evt);
+                } catch (Exception ex) {
+                    handleExecutionError(evt, consumer.getSource(), consumer.getTarget(), ex);
+                    return;
+                }
+            });
+        }
+
+        // execute on-entry action
+        try {
+            StateAction entryAction = newState.getOnEntryAction();
+            if(entryAction!=null) {
+                entryAction.execute(newState, evt);
+            }
+
+        } catch(Exception ex) {
+            handleExecutionError(evt, oldState, newState, ex);
+            return;
+        }
+
+        // execute do-action
+        if (!executeDoActionOfNewState(evt, oldState, newState)) return;
+
+        // transition done, set new current state
+        getCaller().setCurrentState(newState);
+
+        // trigger event in children (nested fsm regions)
+        triggerEventInChildren(evt, newState);
+    }
+
+    private void triggerEventInChildren(Event evt, State newState) {
+        if(newState instanceof FSMState) {
+            FSMState fsmState = (FSMState) newState;
+
+            for(FSM childFSM : fsmState.getFSMs()) {
+
+                // process the event in the nested machine
+                if (childFSM != null) {
+
+                    // create a new execute for child fsm if it doesn't exist yet
+                    if (childFSM.getExecutor() == null) {
+                        getCaller().getExecutor().newChild(childFSM);
+                    }
+
+                    childFSM.getExecutor().process(evt.getName(), evt.getArgs().
+                            toArray(new Object[evt.getArgs().size()])
+                    );
+                }
+            }
+        }
+    }
+
+    private boolean executeDoActionOfNewState(Event evt, State oldState, State newState) {
+        try {
+            StateAction doAction = newState.getDoAction();
+            if(doAction!=null) {
+                Runnable doActionDone = ()->{
+                    getCaller().getExecutor().trigger("fsm:on-do-action-done", newState);
+                };
+                doActionFuture = new CompletableFuture<>();
+                doActionThread = new Thread(()->{
+                    try {
+                        doAction.execute(newState, evt);
+                    } catch(Exception ex) {
+                        handleExecutionError(evt, oldState, newState, ex);
+                        return;
+                    }
+                    doActionFuture.complete(null);
+                    if(!Thread.currentThread().isInterrupted()) {
+                        doActionDone.run();
+                    }
+                });
+                doActionThread.start();
+            } else {
+                // no do-action means, we are done after onEnter()
+                getCaller().getExecutor().trigger("fsm:on-do-action-done", newState);
+            }
+        } catch(Exception ex) {
+            handleExecutionError(evt, oldState, newState, ex);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
         if(oldState!=null) {
             try {
                 if (doActionThread != null && doActionFuture != null) {
@@ -233,86 +327,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 }
             } catch(Exception ex) {
                 handleExecutionError(evt, oldState, newState, ex);
-                return;
+                return false;
             } finally {
                 //
             }
         } // end if oldState != null
-
-        if(consumer!=null) {
-            consumer.getActions().forEach(action -> {
-                try {
-                    // execute action
-                    action.execute(consumer, evt);
-                } catch (Exception ex) {
-                    handleExecutionError(evt, consumer.getSource(), consumer.getTarget(), ex);
-                    return;
-                }
-            });
-        }
-
-        try {
-            StateAction entryAction = newState.getOnEntryAction();
-            if(entryAction!=null) {
-                entryAction.execute(newState, evt);
-            }
-
-        } catch(Exception ex) {
-            handleExecutionError(evt, oldState, newState, ex);
-            return;
-        }
-
-        try {
-            StateAction doAction = newState.getDoAction();
-            if(doAction!=null) {
-                Runnable doActionDone = ()->{
-                    getCaller().getExecutor().trigger("fsm:on-do-action-done", newState);
-                };
-                doActionFuture = new CompletableFuture<>();
-                doActionThread = new Thread(()->{
-                    try {
-                        doAction.execute(newState, evt);
-                    } catch(Exception ex) {
-                        handleExecutionError(evt, oldState, newState, ex);
-                        return;
-                    }
-                    doActionFuture.complete(null);
-                    if(!Thread.currentThread().isInterrupted()) {
-                        doActionDone.run();
-                    }
-                });
-                doActionThread.start();
-            } else {
-                // no do-action means, we are done after onEnter()
-                getCaller().getExecutor().trigger("fsm:on-do-action-done", newState);
-            }
-        } catch(Exception ex) {
-            handleExecutionError(evt, oldState, newState, ex);
-            return;
-        }
-
-        // transition done, set new current state
-        getCaller().setCurrentState(newState);
-
-        if(newState instanceof FSMState) {
-            FSMState fsmState = (FSMState) newState;
-
-            for(FSM childFSM : fsmState.getFSMs()) {
-
-                // process the event in the nested machine
-                if (childFSM != null) {
-
-                    // create a new execute for child fsm if it doesn't exist yet
-                    if (childFSM.getExecutor() == null) {
-                        getCaller().getExecutor().newChild(childFSM);
-                    }
-
-                    childFSM.getExecutor().process(evt.getName(), evt.getArgs().
-                            toArray(new Object[evt.getArgs().size()])
-                    );
-                }
-            }
-        }
+        return true;
     }
 
     private boolean guardMatches(Transition consumer, Event evt) {
