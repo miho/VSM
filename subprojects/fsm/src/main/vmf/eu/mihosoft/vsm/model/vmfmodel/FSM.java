@@ -77,7 +77,7 @@ interface FSM {
     @Contains(opposite = "owningFSM")
     Transition[] getTransitions();
 
-    @Container(opposite = "fSM")
+    @Container(opposite = "fSMs")
     FSMState getParentState();
 
     boolean isRunning();
@@ -113,7 +113,7 @@ interface State extends FSMChild {
 
 interface FSMState extends State {
     @Contains(opposite = "parentState")
-    FSM getFSM();
+    FSM[] getFSMs();
 }
 
 

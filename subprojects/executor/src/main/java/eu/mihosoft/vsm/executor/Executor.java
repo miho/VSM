@@ -111,31 +111,32 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             // before we try to consume it on the current level.
             if(currentState instanceof FSMState) {
                 FSMState fsmState = (FSMState) currentState;
-                FSM childFSM = fsmState.getFSM();
-                if(childFSM!=null) {
+                for(FSM childFSM : fsmState.getFSMs() ) {
+                    if (childFSM != null) {
 
-                    // create a new execute for child fsm if it doesn't exist yet
-                    if(childFSM.getExecutor()==null) {
-                        getCaller().getExecutor().newChild(childFSM);
-                    }
+                        // create a new execute for child fsm if it doesn't exist yet
+                        if (childFSM.getExecutor() == null) {
+                            getCaller().getExecutor().newChild(childFSM);
+                        }
 
-                    // if we consumed it then break and return that we successfully consumed the event
-                    childFSM.getExecutor().reset();
-                    childFSM.setRunning(true);
-                    childFSM.getExecutor().trigger(evt.getName(), evt.getArgs().toArray(new Object[evt.getArgs().size()]));
-
-                    if(childFSM.getExecutor().processRemainingEvents()) {
-                        log(" -> consumed");
-                        consumed = true;
-                        iter.remove();
-                        break;
-                    } else {
-                        log(" -> reset");
+                        // if we consumed it then break and return that we successfully consumed the event
                         childFSM.getExecutor().reset();
+                        childFSM.setRunning(true);
+                        childFSM.getExecutor().trigger(evt.getName(), evt.getArgs().toArray(new Object[evt.getArgs().size()]));
+
+                        if (childFSM.getExecutor().processRemainingEvents()) {
+                            log(" -> consumed");
+                            consumed = true;
+                            iter.remove();
+                            break;
+                        } else {
+                            log(" -> reset");
+                            childFSM.getExecutor().reset();
+                        }
+                        childFSM.setRunning(false);
+                        //log("inner STEP: done.");
                     }
-                    childFSM.setRunning(false);
-                    //log("inner STEP: done.");
-                }
+                } // end for each child fsm
             }
 
             Transition consumer = currentState.getOutgoingTransitions().
@@ -295,19 +296,21 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
         if(newState instanceof FSMState) {
             FSMState fsmState = (FSMState) newState;
-            FSM childFSM = fsmState.getFSM();
 
-            // process the event in the nested machine
-            if(childFSM!=null) {
+            for(FSM childFSM : fsmState.getFSMs()) {
 
-                // create a new execute for child fsm if it doesn't exist yet
-                if(childFSM.getExecutor()==null) {
-                    getCaller().getExecutor().newChild(childFSM);
+                // process the event in the nested machine
+                if (childFSM != null) {
+
+                    // create a new execute for child fsm if it doesn't exist yet
+                    if (childFSM.getExecutor() == null) {
+                        getCaller().getExecutor().newChild(childFSM);
+                    }
+
+                    childFSM.getExecutor().process(evt.getName(), evt.getArgs().
+                            toArray(new Object[evt.getArgs().size()])
+                    );
                 }
-
-                childFSM.getExecutor().process(evt.getName(), evt.getArgs().
-                        toArray(new Object[evt.getArgs().size()])
-                );
             }
         }
     }
