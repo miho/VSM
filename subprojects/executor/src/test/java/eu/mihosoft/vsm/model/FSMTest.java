@@ -461,7 +461,7 @@ public class FSMTest {
     }
 
     @Test
-    public void enterNestedStateDirectlyTest() {
+    public void enterNestedStateDirectlyTest() throws InterruptedException {
 
         var actualEvtList = new ArrayList<String>();
 
@@ -523,7 +523,6 @@ public class FSMTest {
                 .withTarget(state_a_b_a)
                 .build();
 
-
         fsm_a_b.getOwnedState().add(state_a_b_a);
         fsm_a_b.setInitialState(state_a_b_a);
 
@@ -538,7 +537,7 @@ public class FSMTest {
         fsm.setRunning(true);
         executor.process("myEvent1");
         fsm.setRunning(false);
-        
+
         var expectedEvtList = Arrays.asList(
                 "enter state a",                    // <- fsm:init
                 "enter state a_a",                  //
