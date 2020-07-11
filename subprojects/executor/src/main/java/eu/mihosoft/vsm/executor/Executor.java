@@ -238,6 +238,9 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return result;
     }
 
+    private boolean contains(State container, State contained) {
+        return container.vmf().content().stream(State.class).anyMatch(s->s==contained);
+    }
 
     private void performStateTransition(Event evt, State oldState, State newState, Transition consumer) {
 
@@ -280,7 +283,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     }
                 }
             }
-
         }
 
         boolean enterAndExit = !(oldState == newState && (consumer == null ? false : consumer.isLocal()));
@@ -309,7 +311,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
 
         if (enterAndExit) {
-
 
             // enter do-action and state ancestors from direct child of LAC(oldState, newState) to newState
             for(State s : enterNewStateList) {
@@ -343,7 +344,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     return;
                 }
             }
-
 
             // execute on-entry action
             try {
@@ -503,6 +503,11 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     public void reset() {
         evtQueue.clear();
+        fsm.setCurrentState(null);
+
+        // reset children
+        fsm.vmf().content().stream(FSM.class).filter(sm->sm.getExecutor()!=null).filter(sm->sm!=fsm)
+                .forEach(fsm->fsm.getExecutor().reset());
     }
 
     public void stop() {
