@@ -114,7 +114,7 @@ public class FSMTest {
         fsm.vmf().reflect().propertyByName("currentState").orElseThrow().addChangeListener(change->{
             var oldV = (State)change.propertyChange().orElseThrow().oldValue();
             var newV = (State)change.propertyChange().orElseThrow().newValue();
-            System.out.println("> transitioned from " + (oldV==null?"<undefined>":oldV.getName()) + " to " + newV.getName());
+//            System.out.println("> transitioned from " + (oldV==null?"<undefined>":oldV.getName()) + " to " + newV.getName());
             if(newV!=null) {
                 visitedStates.add(newV);
             }
@@ -266,7 +266,7 @@ public class FSMTest {
         //executor.process("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
 
 
-        Thread.sleep(15000);
+        Thread.sleep(20000);
 
         var expectedEvtList = Arrays.asList(
                 "enter state a",               // <- fsm:init
@@ -943,6 +943,72 @@ public class FSMTest {
         );
 
         Assert.assertEquals(expectedEvtList,actualEvtList);
+
+    }
+
+    @Test
+    public void localVsExternalTransitionTest() {
+        var actualEvtList = new ArrayList<String>();
+
+        StateAction entryAction = (s, e) -> {
+            actualEvtList.add("enter " + s.getName());
+        };
+
+        StateAction exitAction = (s, e) -> {
+            actualEvtList.add("exit " + s.getName());
+        };
+
+        State childState1 = State.newBuilder()
+                .withName("Child1")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
+
+        State childState2 = State.newBuilder()
+                .withName("Child2")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
+
+        State parentState = FSMState.newBuilder()
+                .withName("Parent")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .withFSMs(FSM.newBuilder().withName("Nested FSM")
+                        .withInitialState(childState1)
+                        .withOwnedState(childState1, childState2)
+                        .build())
+                .build();
+
+        Transition t = Transition.newBuilder()
+                .withTrigger("event")
+                .withSource(parentState)
+                .withTarget(childState2)
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withInitialState(parentState)
+                .withOwnedState(parentState)
+                .withTransitions(t)
+                .build();
+
+        Executor executor = Executor.newInstance(fsm);
+
+        fsm.setRunning(true);
+        executor.process("event");
+        fsm.setRunning(false);
+
+        System.out.println(actualEvtList);
+
+        actualEvtList.clear();
+
+        t.setLocal(true);
+        fsm.setRunning(true);
+        executor.reset();
+        executor.process("event");
+        fsm.setRunning(false);
+
+        System.out.println(actualEvtList);
 
     }
 }

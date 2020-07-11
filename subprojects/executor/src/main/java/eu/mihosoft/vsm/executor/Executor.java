@@ -316,6 +316,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             for(State s : enterNewStateList) {
                 try {
 
+                    // execute entry-action
+                    StateAction entryAction = s.getOnEntryAction();
+                    if (entryAction != null) {
+                        entryAction.execute(s, evt);
+                    }
+
+                    if (!executeDoActionOfNewState(evt, s, newState)) return;
+
                     // enter children states
                     if(enterAndExit &&  s instanceof FSMState) {
                         FSMState fsmState = (FSMState)  s;
@@ -330,14 +338,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             childFSM.setRunning(true);
                         }
                     }
-
-                    // execute entry-action
-                    StateAction entryAction = s.getOnEntryAction();
-                    if (entryAction != null) {
-                        entryAction.execute(s, evt);
-                    }
-
-                    if (!executeDoActionOfNewState(evt, s, newState)) return;
 
                 } catch (Exception ex) {
                     handleExecutionError(evt, oldState, newState, ex);
@@ -359,6 +359,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
             // execute do-action
             if (!executeDoActionOfNewState(evt, oldState, newState)) return;
+
         }
 
         // enter children states
