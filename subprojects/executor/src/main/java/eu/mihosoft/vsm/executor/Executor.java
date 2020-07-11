@@ -117,7 +117,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     public boolean processRemainingEvents() {
 
         if(!getCaller().isRunning()) return false;
-
         if(getCaller().getOwnedState().isEmpty()) return false;
 
         boolean consumed = false;
@@ -150,7 +149,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 FSMState fsmState = (FSMState) currentState;
                 for(FSM childFSM : fsmState.getFSMs() ) {
                     if (childFSM != null) {
-
                         // if we consumed it then remove it
                         childFSM.getExecutor().trigger(evt);
 
@@ -311,9 +309,28 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
 
         if (enterAndExit) {
+
+
             // enter do-action and state ancestors from direct child of LAC(oldState, newState) to newState
             for(State s : enterNewStateList) {
                 try {
+
+                    // enter children states
+                    if(enterAndExit &&  s instanceof FSMState) {
+                        FSMState fsmState = (FSMState)  s;
+                        for(FSM childFSM : fsmState.getFSMs()) {
+
+                            // create a new execute for child fsm if it doesn't exist yet
+                            if (childFSM.getExecutor() == null) {
+                                getCaller().getExecutor().newChild(childFSM);
+                            }
+                            Executor executor = (Executor) childFSM.getExecutor();
+                            executor.reset();
+                            childFSM.setRunning(true);
+                        }
+                    }
+
+                    // execute entry-action
                     StateAction entryAction = s.getOnEntryAction();
                     if (entryAction != null) {
                         entryAction.execute(s, evt);
@@ -359,7 +376,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 childFSM.setRunning(true);
             }
         }
-
 
         // transition done, set new current state
         getCaller().setCurrentState(newState);
