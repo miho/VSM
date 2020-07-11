@@ -538,8 +538,7 @@ public class FSMTest {
         fsm.setRunning(true);
         executor.process("myEvent1");
         fsm.setRunning(false);
-
-
+        
         var expectedEvtList = Arrays.asList(
                 "enter state a",                    // <- fsm:init
                 "enter state a_a",                  //

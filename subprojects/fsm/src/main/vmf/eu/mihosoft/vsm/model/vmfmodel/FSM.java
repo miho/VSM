@@ -120,6 +120,9 @@ interface State extends FSMChild {
 interface FSMState extends State {
     @Contains(opposite = "parentState")
     FSM[] getFSMs();
+
+    @Container(opposite = "ownedState")
+    FSM getOwningFSM();
 }
 
 

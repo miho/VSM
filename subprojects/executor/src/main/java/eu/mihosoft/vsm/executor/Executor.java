@@ -231,21 +231,17 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     }
 
     private List<State> pathToRootExcluding(State state) {
-
         List<State> result = new ArrayList<>();
 
-        while(state.getOwningFSM()!=null&&state.getOwningFSM().getParentState()!=null) {
+        while(state.getOwningFSM().getParentState()!=null) {
             state = state.getOwningFSM().getParentState();
             result.add(state);
         }
-
         return result;
     }
 
 
     private void performStateTransition(Event evt, State oldState, State newState, Transition consumer) {
-
-        // TODO 11.07.2020 match target depth, i.e., include guards + actions until parent fsm between source and target are equal
 
         var exitOldStateList = new ArrayList<State>();
         var enterNewStateList = new ArrayList<State>();
@@ -256,13 +252,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             var pathToRootSrc = pathToRootExcluding(oldState);
             var pathToRootDst = pathToRootExcluding(newState);
 
-            int maxIdx = Math.max(pathToRootSrc.size()-1,pathToRootDst.size()-1);
+            int maxSize = Math.max(pathToRootSrc.size(),pathToRootDst.size());
 
-            for(int i = maxIdx; i >=0; i--) {
+            for(int i = 0; i < maxSize; i++) {
                 State srcParent;
                 if(i<pathToRootSrc.size()) {
                     srcParent = pathToRootSrc.get(i);
-                    exitOldStateList.add(srcParent);
                 } else {
                     srcParent = null;
                 }
@@ -270,7 +265,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 State dstParent;
                 if(i<pathToRootDst.size()) {
                     dstParent = pathToRootDst.get(i);
-                    enterNewStateList.add(dstParent);
+
                 } else {
                     dstParent = null;
                 }
@@ -278,6 +273,13 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 if(srcParent!=null && dstParent!=null && srcParent == dstParent) {
                     //LCA found
                     break;
+                } else {
+                    if(srcParent!=null) {
+                        exitOldStateList.add(srcParent);
+                    }
+                    if(dstParent!=null) {
+                        enterNewStateList.add(dstParent);
+                    }
                 }
             }
 
