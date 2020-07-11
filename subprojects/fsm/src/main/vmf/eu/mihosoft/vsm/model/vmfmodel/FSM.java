@@ -60,6 +60,7 @@ interface FSMChild {
 }
 
 @Doc("This model entity is a finite state machine.")
+//@DelegateTo(className = "eu.mihosoft.vsm.model.FSMBehavior")
 interface FSM {
 
     boolean isVerbose();
@@ -86,6 +87,9 @@ interface FSM {
     Duration getMaxCancellationTimeout();
 
     Executor getExecutor();
+
+//    @DelegateTo(className = "eu.mihosoft.vsm.model.FSMBehavior")
+//    int depth();
 }
 
 interface State extends FSMChild {

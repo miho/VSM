@@ -523,7 +523,6 @@ public class FSMTest {
                 .withTarget(state_a_b_a)
                 .build();
 
-        fsm_a.getTransitions().add(a_a__a_b_a);
 
         fsm_a_b.getOwnedState().add(state_a_b_a);
         fsm_a_b.setInitialState(state_a_b_a);
@@ -532,6 +531,8 @@ public class FSMTest {
                 .withOwnedState(state_a)
                 .withInitialState(state_a)
                 .build();
+
+        fsm.getTransitions().add(a_a__a_b_a);
 
         Executor executor = Executor.newInstance(fsm);
         fsm.setRunning(true);

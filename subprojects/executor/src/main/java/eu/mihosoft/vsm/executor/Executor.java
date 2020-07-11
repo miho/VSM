@@ -230,17 +230,69 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
     }
 
+    private List<State> pathToRootExcluding(State state) {
+
+        List<State> result = new ArrayList<>();
+
+        while(state.getOwningFSM()!=null&&state.getOwningFSM().getParentState()!=null) {
+            state = state.getOwningFSM().getParentState();
+            result.add(state);
+        }
+
+        return result;
+    }
+
 
     private void performStateTransition(Event evt, State oldState, State newState, Transition consumer) {
 
         // TODO 11.07.2020 match target depth, i.e., include guards + actions until parent fsm between source and target are equal
 
+        var exitOldStateList = new ArrayList<State>();
+        var enterNewStateList = new ArrayList<State>();
+
+        // compute LCA of oldState and newState
+        if(oldState!=null && newState!=null) {
+
+            var pathToRootSrc = pathToRootExcluding(oldState);
+            var pathToRootDst = pathToRootExcluding(newState);
+
+            int maxIdx = Math.max(pathToRootSrc.size()-1,pathToRootDst.size()-1);
+
+            for(int i = maxIdx; i >=0; i--) {
+                State srcParent;
+                if(i<pathToRootSrc.size()) {
+                    srcParent = pathToRootSrc.get(i);
+                    exitOldStateList.add(srcParent);
+                } else {
+                    srcParent = null;
+                }
+
+                State dstParent;
+                if(i<pathToRootDst.size()) {
+                    dstParent = pathToRootDst.get(i);
+                    enterNewStateList.add(dstParent);
+                } else {
+                    dstParent = null;
+                }
+
+                if(srcParent!=null && dstParent!=null && srcParent == dstParent) {
+                    //LCA found
+                    break;
+                }
+            }
+
+        }
 
         boolean enterAndExit = !(oldState == newState && (consumer == null ? false : consumer.isLocal()));
 
         if (enterAndExit){
             // exit do-action of oldState
             if (!exitDoActionOfOldState(evt, oldState, newState)) return;
+
+            // exit do-action and state ancestors until we reach direct children of LAC(oldState, newState)
+            for(State s : exitOldStateList) {
+                if (!exitDoActionOfOldState(evt, s, newState)) return;
+            }
         }
 
         // execute transition action
@@ -257,6 +309,23 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
 
         if (enterAndExit) {
+            // enter do-action and state ancestors from direct child of LAC(oldState, newState) to newState
+            for(State s : enterNewStateList) {
+                try {
+                    StateAction entryAction = s.getOnEntryAction();
+                    if (entryAction != null) {
+                        entryAction.execute(s, evt);
+                    }
+
+                    if (!executeDoActionOfNewState(evt, s, newState)) return;
+
+                } catch (Exception ex) {
+                    handleExecutionError(evt, oldState, newState, ex);
+                    return;
+                }
+            }
+
+
             // execute on-entry action
             try {
                 StateAction entryAction = newState.getOnEntryAction();
@@ -268,9 +337,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 handleExecutionError(evt, oldState, newState, ex);
                 return;
             }
-        }
 
-        if (enterAndExit) {
             // execute do-action
             if (!executeDoActionOfNewState(evt, oldState, newState)) return;
         }
