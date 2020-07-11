@@ -10,6 +10,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class FSMTest {
@@ -546,6 +547,136 @@ public class FSMTest {
                 "exit state a_a",                   //
                 "enter state a_b",                  //
                 "enter state a_b_a"                 //
+        );
+
+        Assert.assertEquals(expectedEvtList,actualEvtList);
+
+    }
+
+    @Test
+    public void lockedDoorTest() throws InterruptedException {
+
+        var actualEvtList = new ArrayList<String>();
+
+        String event_close  = "close";
+        String event_open   = "open";
+        String event_lock   = "lock";
+        String event_unlock = "unlock";
+
+        State opened = State.newBuilder()
+                .withName("opened")
+                .withOnEntryAction((s,e)->{
+                    actualEvtList.add("enter opened");
+                })
+                .withOnExitAction((s,e)->actualEvtList.add("exit opened"))
+                .build();
+
+        State closed = State.newBuilder()
+                .withName("closed")
+                .withOnEntryAction((s,e)->actualEvtList.add("enter closed"))
+                .withOnExitAction((s,e)->actualEvtList.add("exit closed"))
+                .build();
+
+        State locked = State.newBuilder()
+                .withName("locked")
+                .withOnEntryAction((s,e)->actualEvtList.add("enter locked"))
+                .withOnExitAction((s,e)->actualEvtList.add("exit locked"))
+                .build();
+
+
+        Transition closeDoor = Transition.newBuilder()
+                .withTrigger(event_close)
+                .withSource(opened)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("closeDoor(), evt: " + e.getName());
+                    actualEvtList.add("closeDoor()");
+                })
+                .build();
+
+        Transition openDoor = Transition.newBuilder()
+                .withTrigger(event_open)
+                .withSource(closed)
+                .withTarget(opened)
+                .withActions((t, e) -> {
+                    System.out.println("openDoor(), evt: " + e.getName());
+                    actualEvtList.add("openDoor()");
+                })
+                .build();
+
+        Transition lockDoor = Transition.newBuilder()
+                .withTrigger(event_lock)
+                .withSource(closed)
+                .withTarget(locked)
+                .withActions((t, e) -> {
+                    System.out.println("lockDoor(), evt: " + e.getName());
+                    actualEvtList.add("lockDoor()");
+                })
+                .build();
+
+        Transition unlockDoor = Transition.newBuilder()
+                .withTrigger(event_unlock)
+                .withSource(locked)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("unlockDoor(), evt: " + e.getName());
+                    actualEvtList.add("unlockDoor()");
+                })
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withInitialState(opened)
+                .withOwnedState(opened,closed,locked)
+                .withTransitions(openDoor,closeDoor,lockDoor,unlockDoor)
+                .build();
+
+        Executor executor = Executor.newInstance(fsm);
+
+        fsm.setRunning(true);
+
+        executor.process(event_close);
+        executor.process(event_lock);
+        executor.process(event_unlock);
+        executor.process(event_open);
+
+        executor.process(event_lock); // try invalid
+        executor.process(event_close);
+        executor.process(event_lock);
+
+        executor.process(event_open); // try invalid
+
+        fsm.setRunning(false);
+
+        var expectedEvtList = Arrays.asList(
+                "enter opened",                     // <- fsm:init
+
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
+
+                "exit closed",
+                "lockDoor()",
+                "enter locked",
+
+                "exit locked",
+                "unlockDoor()",
+                "enter closed",
+
+                "exit closed",
+                "openDoor()",
+                "enter opened",
+
+                // not "lockDoor()" because it's invalid
+
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
+
+                "exit closed",
+                "lockDoor()",
+                "enter locked"
+
+                // not "openDoor()" because it's invalid
         );
 
         Assert.assertEquals(expectedEvtList,actualEvtList);
