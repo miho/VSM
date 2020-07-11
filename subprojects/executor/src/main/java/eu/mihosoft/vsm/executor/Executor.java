@@ -115,10 +115,16 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     }
 
     public boolean processRemainingEvents() {
+
+        if(!getCaller().isRunning()) return false;
+
+        if(getCaller().getOwnedState().isEmpty()) return false;
+
         boolean consumed = false;
 
         // set current state to initial state if current state is null
         if(getCaller().getCurrentState()==null) {
+
             performStateTransition(
                     Event.newBuilder().withName("fsm:init").build(),
                     null,
@@ -228,6 +234,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     private void performStateTransition(Event evt, State oldState, State newState, Transition consumer) {
 
         // TODO 11.07.2020 match target depth, i.e., include guards + actions until parent fsm between source and target are equal
+
 
         boolean enterAndExit = !(oldState == newState && (consumer == null ? false : consumer.isLocal()));
 

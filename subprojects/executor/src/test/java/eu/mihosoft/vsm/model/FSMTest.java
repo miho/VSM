@@ -459,4 +459,97 @@ public class FSMTest {
 
         return fsm;
     }
+
+    @Test
+    public void enterNestedStateDirectlyTest() {
+
+        var actualEvtList = new ArrayList<String>();
+
+        FSM fsm_a = FSM.newBuilder()
+                .withName("FSM a")
+                .build();
+
+        FSM fsm_a_a = FSM.newBuilder()
+                .withName("FSM a_a")
+                .build();
+
+        FSM fsm_a_b = FSM.newBuilder()
+                .withName("FSM a_b")
+                .build();
+
+        State state_a = FSMState.newBuilder()
+                .withName("a")
+                .withOnEntryAction((s,e)->actualEvtList.add("enter state a"))
+                .withOnExitAction((s,e)->actualEvtList.add("exit state a"))
+                .withFSMs(fsm_a)
+                .build();
+
+        State state_a_a = FSMState.newBuilder()
+                .withName("a_a")
+                .withOnEntryAction((s,e)->actualEvtList.add("enter state a_a"))
+                .withOnExitAction((s,e)->actualEvtList.add("exit state a_a"))
+                .withFSMs(fsm_a_a)
+                .build();
+
+        State state_a_a_a = State.newBuilder()
+                .withName("a_a_a")
+                .withOnEntryAction((s,e)->actualEvtList.add("enter state a_a_a"))
+                .withOnExitAction((s,e)->actualEvtList.add("exit state a_a_a"))
+                .build();
+
+        State state_a_b = FSMState.newBuilder()
+                .withName("a_b")
+                .withOnEntryAction((s,e)->actualEvtList.add("enter state a_b"))
+                .withOnExitAction((s,e)->actualEvtList.add("exit state a_b"))
+                .withFSMs(fsm_a_b)
+                .build();
+
+        fsm_a.getOwnedState().add(state_a_a);
+        fsm_a.getOwnedState().add(state_a_b);
+        fsm_a.setInitialState(state_a_a);
+
+        fsm_a_a.getOwnedState().add(state_a_a_a);
+        fsm_a_a.setInitialState(state_a_a_a);
+
+        State state_a_b_a = State.newBuilder()
+                .withName("a_b_a")
+                .withOnEntryAction((s,e)->actualEvtList.add("enter state a_b_a"))
+                .withOnExitAction((s,e)->actualEvtList.add("exit state a_b_a"))
+                .build();
+
+        Transition a_a__a_b_a = Transition.newBuilder()
+                .withTrigger("myEvent1")
+                .withSource(state_a_a_a)
+                .withTarget(state_a_b_a)
+                .build();
+
+        fsm_a.getTransitions().add(a_a__a_b_a);
+
+        fsm_a_b.getOwnedState().add(state_a_b_a);
+        fsm_a_b.setInitialState(state_a_b_a);
+
+        FSM fsm = FSM.newBuilder()
+                .withOwnedState(state_a)
+                .withInitialState(state_a)
+                .build();
+
+        Executor executor = Executor.newInstance(fsm);
+        fsm.setRunning(true);
+        executor.process("myEvent1");
+        fsm.setRunning(false);
+
+
+        var expectedEvtList = Arrays.asList(
+                "enter state a",                    // <- fsm:init
+                "enter state a_a",                  //
+                "enter state a_a_a",                //
+                "exit state a_a_a",                 // <- myEvent1
+                "exit state a_a",                   //
+                "enter state a_b",                  //
+                "enter state a_b_a"                 //
+        );
+
+        Assert.assertEquals(expectedEvtList,actualEvtList);
+
+    }
 }
