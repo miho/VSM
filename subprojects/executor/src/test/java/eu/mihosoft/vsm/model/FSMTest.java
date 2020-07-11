@@ -114,7 +114,10 @@ public class FSMTest {
         fsm.vmf().reflect().propertyByName("currentState").orElseThrow().addChangeListener(change->{
             var oldV = (State)change.propertyChange().orElseThrow().oldValue();
             var newV = (State)change.propertyChange().orElseThrow().newValue();
-//            System.out.println("> transitioned from " + (oldV==null?"<undefined>":oldV.getName()) + " to " + newV.getName());
+            System.out.println("> transitioned from " +
+                    (oldV==null?"<undefined>":oldV.getName()) +
+                    " to " +
+                    (newV==null?"<undefined>":newV.getName()));
             if(newV!=null) {
                 visitedStates.add(newV);
             }
