@@ -12,16 +12,39 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     private Thread doActionThread;
     private CompletableFuture<Void> doActionFuture;
     private Map<State, Boolean> stateExited = new HashMap<>();
-
+    private final int depth;
     private final FSM fsm;
 
-    private Executor(FSM fsm) {
+    private final List<Executor> pathToRoot = new ArrayList<>();
+
+    private static Optional<Executor> getLCA(Executor a, Executor b) {
+        int start = Math.min(a.pathToRoot.size(), b.pathToRoot.size());
+
+        for(int i = start; i >=0; i++) {
+            var ancestorOfA = a.pathToRoot.get(i);
+            var ancestorOfB = b.pathToRoot.get(i);
+            if(ancestorOfA == ancestorOfB) return Optional.of(ancestorOfA);
+        }
+
+        return Optional.empty();
+    }
+
+    private Executor(FSM fsm, int depth, Executor parent) {
         this.fsm = fsm;
         this.fsm.setExecutor(this);
+        this.depth = depth;
+        if(parent!=null) {
+            pathToRoot.addAll(parent.pathToRoot);
+        }
+        pathToRoot.add(this);
     }
 
     public static Executor newInstance(FSM fsm) {
-        return new Executor(fsm);
+        return new Executor(fsm,0, null);
+    }
+
+    private int getDepth() {
+        return this.depth;
     }
 
     private FSM getCaller(){return this.fsm;}
@@ -154,8 +177,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 log("  -> found consumer: " + level(getCaller()) + ":" + consumer.getTarget().getName());
                 log("     on-thread:      " + Thread.currentThread().getName());
 
-                // TODO 11.07.2020 match target depth, i.e., include guards + actions until parent fsm between source and target are equal
-
                 performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
 
                 if(getCaller().getFinalState().contains(getCaller().getCurrentState())) {
@@ -203,14 +224,17 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
     }
 
+
     private void performStateTransition(Event evt, State oldState, State newState, Transition consumer) {
 
-        if(oldState==newState && (consumer==null?false:consumer.isLocal())) {
-            return; // don't perform enter & exit actions
-        }
+        // TODO 11.07.2020 match target depth, i.e., include guards + actions until parent fsm between source and target are equal
 
-        // exit do-action of oldState
-        if (!exitDoActionOfOldState(evt, oldState, newState)) return;
+        boolean enterAndExit = !(oldState == newState && (consumer == null ? false : consumer.isLocal()));
+
+        if (enterAndExit){
+            // exit do-action of oldState
+            if (!exitDoActionOfOldState(evt, oldState, newState)) return;
+        }
 
         // execute transition action
         if(consumer!=null) {
@@ -225,20 +249,27 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             });
         }
 
-        // execute on-entry action
-        try {
-            StateAction entryAction = newState.getOnEntryAction();
-            if(entryAction!=null) {
-                entryAction.execute(newState, evt);
-            }
+        if (enterAndExit) {
+            // execute on-entry action
+            try {
+                StateAction entryAction = newState.getOnEntryAction();
+                if (entryAction != null) {
+                    entryAction.execute(newState, evt);
+                }
 
-        } catch(Exception ex) {
-            handleExecutionError(evt, oldState, newState, ex);
-            return;
+            } catch (Exception ex) {
+                handleExecutionError(evt, oldState, newState, ex);
+                return;
+            }
+        }
+
+        if (enterAndExit) {
+            // execute do-action
+            if (!executeDoActionOfNewState(evt, oldState, newState)) return;
         }
 
         // enter children states
-        if(newState instanceof FSMState) {
+        if(enterAndExit && newState instanceof FSMState) {
             FSMState fsmState = (FSMState) newState;
             for(FSM childFSM : fsmState.getFSMs()) {
 
@@ -253,11 +284,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             }
         }
 
-        // execute do-action
-        if (!executeDoActionOfNewState(evt, oldState, newState)) return;
 
         // transition done, set new current state
-
         getCaller().setCurrentState(newState);
         stateExited.put(newState, false);
     }
@@ -398,12 +426,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     @Override
     public eu.mihosoft.vsm.model.Executor newChild(FSM fsm) {
-        return new Executor(fsm);
+        return new Executor(fsm,depth+1, this);
     }
 
     @Override
     public boolean hasRemainingEvents() {
-        boolean eventsInQueue = evtQueue.isEmpty();
+        boolean eventsInQueue = !evtQueue.isEmpty();
         boolean actionsRunning = doActionThread!=null&&doActionThread.isAlive();
 
         if(eventsInQueue) return true;
