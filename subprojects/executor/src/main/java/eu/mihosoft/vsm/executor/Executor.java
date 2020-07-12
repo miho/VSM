@@ -515,13 +515,18 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return t;
     }
 
-    public void reset() {
+    private void reset_int() {
         evtQueue.clear();
         fsm.setCurrentState(null);
+    }
+
+    public void reset() {
+
+        reset_int();
 
         // reset children
         fsm.vmf().content().stream(FSM.class).filter(sm->sm.getExecutor()!=null).filter(sm->sm!=fsm)
-                .forEach(fsm->fsm.getExecutor().reset());
+                .forEach(fsm->((Executor)fsm.getExecutor()).reset_int());
     }
 
     public void stop() {
