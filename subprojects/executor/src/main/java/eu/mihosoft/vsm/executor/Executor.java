@@ -4,6 +4,8 @@ import eu.mihosoft.vsm.model.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 public class Executor implements eu.mihosoft.vsm.model.Executor {
@@ -14,6 +16,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     private Map<State, Boolean> stateExited = new HashMap<>();
     private final int depth;
     private final FSM fsm;
+    private final ReentrantLock fsmLock = new ReentrantLock();
 
     private final List<Executor> pathToRoot = new ArrayList<>();
 
@@ -114,105 +117,134 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return result;
     }
 
+
+
+    private void modifyFSMSafe(Consumer<FSM> fsmTask) {
+        try {
+            fsmLock.lock();
+            fsmTask.accept(getCaller());
+        } finally {
+            fsmLock.unlock();
+        }
+    }
+
     public boolean processRemainingEvents() {
 
-        if(!getCaller().isRunning()) return false;
-        if(getCaller().getOwnedState().isEmpty()) return false;
+        // everything modified concurrently with start(), reset(), stop() etc. must be inside
+        // locked code block
+        try {
+            fsmLock.lock();
+            if (!getCaller().isRunning()) return false;
+            if (getCaller().getOwnedState().isEmpty()) return false;
+
+            // set current state to initial state if current state is null
+            if(getCaller().getCurrentState()==null) {
+                performStateTransition(
+                        Event.newBuilder().withName("fsm:init").build(),
+                        null,
+                        getCaller().getInitialState(),
+                        null
+                );
+            }
+
+        } finally {
+            fsmLock.unlock();
+        }
 
         boolean consumed = false;
 
-        // set current state to initial state if current state is null
-        if(getCaller().getCurrentState()==null) {
-
-            performStateTransition(
-                    Event.newBuilder().withName("fsm:init").build(),
-                    null,
-                    getCaller().getInitialState(),
-                    null
-            );
-        }
-
-
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
-            Event evt = iter.next();
-            State currentState = getCaller().getCurrentState();
+            try {
+                fsmLock.lock();
 
-            if (getCaller().isVerbose()) {
-                log("> try-consume: " + evt.getName() +
-                        (evt.isDeferred() ? " (previously deferred)" : "") + ", fsm: " + level(getCaller()));
-                log("  -> in state: " + level(getCaller()) + ":" + currentState.getName());
-            }
+                Event evt = iter.next();
+                State currentState = getCaller().getCurrentState();
 
-            // if we are in a state with nested fsm we try to consume the event in the nested machine
-            // before we try to consume it on the current level.
-            if (currentState instanceof FSMState) {
-                FSMState fsmState = (FSMState) currentState;
-                for (FSM childFSM : fsmState.getFSMs()) {
-                    if (childFSM != null) {
-                        // if we consumed it then remove it
-                        childFSM.getExecutor().trigger(evt);
+                if (getCaller().isVerbose()) {
+                    log("> try-consume: " + evt.getName() +
+                            (evt.isDeferred() ? " (previously deferred)" : "") + ", fsm: " + level(getCaller()));
+                    log("  -> in state: " + level(getCaller()) + ":" + currentState.getName());
+                }
 
-                        if (childFSM.getExecutor().processRemainingEvents()) {
-                            log(" -> consumed");
-                            iter.remove();
-                            consumed = true;
+                // if we are in a state with nested fsm we try to consume the event in the nested machine
+                // before we try to consume it on the current level.
+                if (currentState instanceof FSMState) {
+                    FSMState fsmState = (FSMState) currentState;
+                    for (FSM childFSM : fsmState.getFSMs()) {
+                        if (childFSM != null) {
+                            // if we consumed it then remove it
+                            childFSM.getExecutor().trigger(evt);
+
+                            if (childFSM.getExecutor().processRemainingEvents()) {
+                                log(" -> consumed");
+                                iter.remove();
+                                consumed = true;
+                            }
+                        }
+                    } // end for each child fsm
+                }
+
+                // children consumed event
+                if (consumed) continue;
+
+                Transition consumer = currentState.getOutgoingTransitions().
+                        stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).findFirst().orElse(null);
+
+                boolean guardMatches;
+
+                if (consumer != null && !guardMatches(consumer, evt)) {
+                    guardMatches = false;
+                    log("  -> guard of potential consumer does not match: " + level(getCaller()));
+                } else {
+                    guardMatches = true;
+                }
+
+                if (consumer != null && guardMatches) {
+
+                    if (consumer.getTarget() == null) {
+                        handleExecutionError(evt, consumer.getSource(), consumer.getTarget(),
+                                new RuntimeException("Cannot process transitions without target: " + consumer)
+                        );
+                    }
+
+                    log("  -> found consumer: " + level(getCaller()) + ":" + consumer.getTarget().getName());
+                    log("     on-thread:      " + Thread.currentThread().getName());
+
+                    performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
+
+                    if (getCaller().getFinalState().contains(getCaller().getCurrentState())) {
+                        log("  -> final state reached. stopping.");
+                        exitDoActionOfOldState(evt, currentState, null);
+                        getCaller().setRunning(false);
+                    }
+
+                    // if we consume the current event, pop the corresponding entry in the queue
+                    if (!consumed) {
+                        iter.remove();
+                        consumed = true;
+
+                        if (evt.getAction() != null) {
+                            evt.getAction().execute(evt, consumer);
                         }
                     }
-                } // end for each child fsm
-            }
 
-            // children consumed event
-            if (consumed) continue;
-
-            Transition consumer = currentState.getOutgoingTransitions().
-                    stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).findFirst().orElse(null);
-
-            boolean guardMatches;
-
-            if (consumer != null && !guardMatches(consumer, evt)) {
-                guardMatches = false;
-                log("  -> guard of potential consumer does not match: " + level(getCaller()));
-            } else {
-                guardMatches = true;
-            }
-
-            if (consumer != null && guardMatches) {
-
-                log("  -> found consumer: " + level(getCaller()) + ":" + consumer.getTarget().getName());
-                log("     on-thread:      " + Thread.currentThread().getName());
-
-                performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
-
-                if (getCaller().getFinalState().contains(getCaller().getCurrentState())) {
-                    log("  -> final state reached. stopping.");
-                    exitDoActionOfOldState(evt, currentState, null);
-                    getCaller().setRunning(false);
-                }
-
-                // if we consume the current event, pop the corresponding entry in the queue
-                if (!consumed) {
-                    iter.remove();
-                    consumed = true;
-
-                    if (evt.getAction() != null) {
-                        evt.getAction().execute(evt, consumer);
+                } else if (!consumed) {
+                    if (guardMatches && defers(getCaller().getCurrentState(), evt)) {
+                        log("  -> deferring: " + evt.getName());
+                        evt.setDeferred(true);
+                    } else {
+                        log("  -> discarding unconsumed event: " + evt.getName());
+                        // discard event (not deferred)
+                        iter.remove();
                     }
                 }
 
-            } else if (!consumed) {
-                if (guardMatches && defers(getCaller().getCurrentState(), evt)) {
-                    log("  -> deferring: " + evt.getName());
-                    evt.setDeferred(true);
-                } else {
-                    log("  -> discarding unconsumed event: " + evt.getName());
-                    // discard event (not deferred)
-                    iter.remove();
-                }
+            } finally {
+                fsmLock.unlock();
             }
 
         } // end for
-
 
         return consumed;
     }
@@ -515,9 +547,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return t;
     }
 
+    @Override
+    public ReentrantLock getFSMLock() {
+        return this.fsmLock;
+    }
+
     private void reset_int() {
         evtQueue.clear();
-        fsm.setCurrentState(null);
+        modifyFSMSafe(fsm-> fsm.setCurrentState(null));
     }
 
     public void reset() {
@@ -530,7 +567,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     }
 
     public void stop() {
-        getCaller().setRunning(false);
+        modifyFSMSafe(fsm-> fsm.setRunning(false));
         reset();
     }
 

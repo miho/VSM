@@ -1,5 +1,7 @@
 package eu.mihosoft.vsm.model;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * Executor interface for executing finite state machines (FSM).
  */
@@ -51,7 +53,13 @@ public interface Executor {
      * execution. This method does return while the state machine is executed
      * @return the thread performing the execution
      */
-    Thread startAsync() ;
+    Thread startAsync();
+
+    /**
+     * Returns the lock object that locks the FSM instance controlled by this executor.
+     * @return the lock object that locks the FSM instance controlled by this executor
+     */
+    ReentrantLock getFSMLock();
 
     /**
      * Resets the associated state machine.
