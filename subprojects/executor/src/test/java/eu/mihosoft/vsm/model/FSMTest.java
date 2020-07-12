@@ -16,330 +16,356 @@ import java.util.stream.Collectors;
 
 public class FSMTest {
     @Test public void testATMFSM() throws InterruptedException {
-        State idleState = State.newBuilder().withName("idle").withOnEntryAction(
-                (s,e) -> {
-                    System.out.println("Machine Idle State");
-                }).build();
 
-        State cardInserted = State.newBuilder().withName("cardInserted")
-                .withOnEntryAction((s,e) -> {
-                    System.out.println("Card Inserted State");
-                }).build();
+        for(int i = 0; i < 10; i++) {
 
-        State pinEnteredState = State.newBuilder().withName("pinEntered")
-                .withOnEntryAction((s,e) -> {
-                    System.out.println("Pin Entered State");
-                }).build();
+            State idleState = State.newBuilder().withName("idle").withOnEntryAction(
+                    (s, e) -> {
+                        System.out.println("Machine Idle State");
+                    }).build();
 
-        State amountRequested = State.newBuilder().withName("amountRequested")
-                .withOnEntryAction((s,e) -> {
-                    System.out.println("Amount Requested State");
-                }).build();
+            State cardInserted = State.newBuilder().withName("cardInserted")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("Card Inserted State");
+                    }).build();
 
-        Transition insertCardTransition = Transition.newBuilder().withTrigger("insert-card")
-                .withGuard((t, evt)->{
-                    if(evt.getArgs().isEmpty()) return false;
-                    return Objects.equals("DE6594339437", evt.getArgs().get(0));
-                })
-                .withActions((s,e) -> {
-                    System.out.println("-> correct card inserted");
-                }).withSource(idleState).withTarget(cardInserted).build();
+            State pinEnteredState = State.newBuilder().withName("pinEntered")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("Pin Entered State");
+                    }).build();
 
-        Transition enterPinTransition = Transition.newBuilder().withTrigger("enter-pin")
-                .withGuard((t,evt) -> {
-                    System.out.println("-> pin entered");
-                    System.out.println("-> checking...");
+            State amountRequested = State.newBuilder().withName("amountRequested")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("Amount Requested State");
+                    }).build();
 
-                    try {
-                        Thread.sleep(2500);
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
+            Transition insertCardTransition = Transition.newBuilder().withTrigger("insert-card")
+                    .withGuard((t, evt) -> {
+                        if (evt.getArgs().isEmpty()) return false;
+                        return Objects.equals("DE6594339437", evt.getArgs().get(0));
+                    })
+                    .withActions((s, e) -> {
+                        System.out.println("-> correct card inserted");
+                    }).withSource(idleState).withTarget(cardInserted).build();
 
-                    if(evt.getArgs().isEmpty()) {
-                        return false;
-                    }
+            Transition enterPinTransition = Transition.newBuilder().withTrigger("enter-pin")
+                    .withGuard((t, evt) -> {
+                        System.out.println("-> pin entered");
+                        System.out.println("-> checking...");
 
-                    return Objects.equals(1234, evt.getArgs().get(0));
-                }).withActions((s,e) -> {
-                    System.out.println("-> valid.");
-                }).withSource(cardInserted).withTarget(pinEnteredState).build();
+                        try {
+                            Thread.sleep(2500);
+                        } catch (InterruptedException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
 
-        Transition requestAmountTransition = Transition.newBuilder().withTrigger("request-amount")
-                .withActions((s,e) -> {
-                    System.out.println("-> amount-requested");
-                }).withSource(pinEnteredState).withTarget(amountRequested).build();
+                        if (evt.getArgs().isEmpty()) {
+                            return false;
+                        }
 
-        Transition moneyDispatchedTransition = Transition.newBuilder().withTrigger("dispatch-money")
-                .withActions((s,e) -> {
-                    System.out.println("-> checking whether requested amount is available");
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException ex) {
-                        // TODO Auto-generated catch block
-                        ex.printStackTrace();
-                    }
-                    System.out.println("-> money-dispatched");
-                })
-                .withSource(amountRequested)
-                .withTarget(idleState)
-                .build();
+                        return Objects.equals(1234, evt.getArgs().get(0));
+                    }).withActions((s, e) -> {
+                        System.out.println("-> valid.");
+                    }).withSource(cardInserted).withTarget(pinEnteredState).build();
 
-        State errorState = State.newBuilder()
-                .withName("Error")
-                .withOnEntryAction((state, event)->{
-                    System.out.println("ERROR: ");
-                })
-                .build();
+            Transition requestAmountTransition = Transition.newBuilder().withTrigger("request-amount")
+                    .withActions((s, e) -> {
+                        System.out.println("-> amount-requested");
+                    }).withSource(pinEnteredState).withTarget(amountRequested).build();
 
-        FSM fsm = FSM.newBuilder()
-                .withName("ATM")
-                .withOwnedState(
-                        idleState, cardInserted, pinEnteredState, amountRequested,errorState
-                )
-                .withInitialState(idleState)
-                .withErrorState(errorState)
-                .withTransitions(
-                        insertCardTransition,
-                        enterPinTransition,
-                        requestAmountTransition,
-                        moneyDispatchedTransition
-                )
-                .withVerbose(true)
-                .build();
+            Transition moneyDispatchedTransition = Transition.newBuilder().withTrigger("dispatch-money")
+                    .withActions((s, e) -> {
+                        System.out.println("-> checking whether requested amount is available");
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException ex) {
+                            // TODO Auto-generated catch block
+                            ex.printStackTrace();
+                        }
+                        System.out.println("-> money-dispatched");
+                    })
+                    .withSource(amountRequested)
+                    .withTarget(idleState)
+                    .build();
 
-        var visitedStates = Collections.synchronizedList(new ArrayList<State>());
+            State errorState = State.newBuilder()
+                    .withName("Error")
+                    .withOnEntryAction((state, event) -> {
+                        System.out.println("ERROR: ");
+                    })
+                    .build();
 
-        fsm.vmf().reflect().propertyByName("currentState").orElseThrow().addChangeListener(change->{
-            var oldV = (State)change.propertyChange().orElseThrow().oldValue();
-            var newV = (State)change.propertyChange().orElseThrow().newValue();
-            System.out.println("> transitioned from " +
-                    (oldV==null?"<undefined>":oldV.getName()) +
-                    " to " +
-                    (newV==null?"<undefined>":newV.getName()));
-            if(newV!=null) {
-                visitedStates.add(newV);
-            }
-        });
+            FSM fsm = FSM.newBuilder()
+                    .withName("ATM")
+                    .withOwnedState(
+                            idleState, cardInserted, pinEnteredState, amountRequested, errorState
+                    )
+                    .withInitialState(idleState)
+                    .withErrorState(errorState)
+                    .withTransitions(
+                            insertCardTransition,
+                            enterPinTransition,
+                            requestAmountTransition,
+                            moneyDispatchedTransition
+                    )
+                    .withVerbose(true)
+                    .build();
 
-        Executor executor = Executor.newInstance(fsm);
+            var visitedStates = Collections.synchronizedList(new ArrayList<State>());
 
-        executor.startAsync();
+            fsm.vmf().reflect().propertyByName("currentState").orElseThrow().addChangeListener(change -> {
+                var oldV = (State) change.propertyChange().orElseThrow().oldValue();
+                var newV = (State) change.propertyChange().orElseThrow().newValue();
+                System.out.println("> transitioned from " +
+                        (oldV == null ? "<undefined>" : oldV.getName()) +
+                        " to " +
+                        (newV == null ? "<undefined>" : newV.getName()));
+                if (newV != null) {
+                    visitedStates.add(newV);
+                }
+            });
 
-        Thread.sleep(1500);
-        
-        executor.trigger("insert-card", "DE6594339437");
+            Executor executor = Executor.newInstance(fsm);
 
-        Thread.sleep(500);
+            executor.startAsync();
 
-        executor.trigger("enter-pin", 1234);
+            Thread.sleep(1500);
 
-        Thread.sleep(500);
+            executor.trigger("insert-card", "DE6594339437");
 
-        executor.trigger("request-amount", 350);
+            Thread.sleep(500);
 
-        executor.trigger("dispatch-money", 350);
+            executor.trigger("enter-pin", 1234);
 
-        Thread.sleep(4000);
+            Thread.sleep(500);
 
-        executor.stop();
+            executor.trigger("request-amount", 350);
 
-        System.out.println("> Visited States: "
-                +visitedStates.stream().map(s->s.getName()).
-                collect(Collectors.joining(", "))
-        );
+            executor.trigger("dispatch-money", 350);
 
-        assertThat(visitedStates, contains(
-                idleState,
-                cardInserted,
-                pinEnteredState,
-                amountRequested,
-                idleState
-                )
-        );
+            Thread.sleep(4000);
+
+            executor.stop();
+
+            System.out.println("> Visited States: "
+                    + visitedStates.stream().map(s -> s.getName()).
+                    collect(Collectors.joining(", "))
+            );
+
+            assertThat(visitedStates, contains(
+                    idleState,
+                    cardInserted,
+                    pinEnteredState,
+                    amountRequested,
+                    idleState
+                    )
+            );
+
+        }
 
     }
 
     @Test
     public void nestedOrthogonalWithDoActionProcessingTest() {
 
-        var actualEvtList = new ArrayList<String>();
+        for(int i = 0; i < 10; i++) {
 
-        FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            var actualEvtList = new ArrayList<String>();
 
-        Executor executor = Executor.newInstance(fsm);
+            FSM fsm = createNestedWithOrthogonal(actualEvtList);
+
+            Executor executor = Executor.newInstance(fsm);
 //        executor.startAsync();
-        fsm.setRunning(true);
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        //executor.process("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            fsm.setRunning(true);
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            //executor.process("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
 
-        while(executor.hasRemainingEvents()) {
-            executor.processRemainingEvents();
+            while (executor.hasRemainingEvents()) {
+                executor.processRemainingEvents();
+            }
+
+            fsm.setRunning(false);
+
+            var expectedEvtList = Arrays.asList(
+                    "enter state a",               // <- fsm:init
+                    "exit state a",                // <- myEvent 1
+                    "enter state b",               //
+                    "exit state b",                // <- myEvent 2
+                    "enter state c",               //
+//                "enter do-action-in-state-c",  // test without enter do-action-in-state-c, because position may vary
+                    "enter state ca1",             //
+                    "enter state ca2",             //
+                    "exit state ca2",              // <- myEvent 2
+                    "enter state cb2",             //
+                    "exit state ca1",              // <- myEvent 1
+                    "enter state cb1",             //
+                    "exit do-action-in-state-c",   // <- timeout (sleep)
+                    "exit state cb1",              // <- fsm:on-do-action-done
+                    "exit state cb2",              //
+                    "exit state c",                //
+                    "enter state a"                //
+            );
+
+            // test without enter do-action-in-state-c, because position may vary
+            actualEvtList.remove("enter do-action-in-state-c");
+            Assert.assertEquals(expectedEvtList, actualEvtList);
         }
-
-        fsm.setRunning(false);
-
-        var expectedEvtList = Arrays.asList(
-                "enter state a",               // <- fsm:init
-                "exit state a",                // <- myEvent 1
-                "enter state b",               //
-                "exit state b",                // <- myEvent 2
-                "enter state c",               //
-                "enter do-action-in-state-c",  //
-                "enter state ca1",             //
-                "enter state ca2",             //
-                "exit state ca2",              // <- myEvent 2
-                "enter state cb2",             //
-                "exit state ca1",              // <- myEvent 1
-                "enter state cb1",             //
-                "exit do-action-in-state-c",   // <- timeout (sleep)
-                "exit state cb1",              // <- fsm:on-do-action-done
-                "exit state cb2",              //
-                "exit state c",                //
-                "enter state a"                //
-        );
-
-        Assert.assertEquals(expectedEvtList,actualEvtList);
     }
 
     @Test
     public void nestedOrthogonalWithDoActionInterruptedProcessingTest() {
 
-        var actualEvtList = new ArrayList<String>();
+        for(int i = 0; i < 10; i++) {
 
-        FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            var actualEvtList = new ArrayList<String>();
 
-        Executor executor = Executor.newInstance(fsm);
+            FSM fsm = createNestedWithOrthogonal(actualEvtList);
 
-        fsm.setRunning(true);
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.process("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            Executor executor = Executor.newInstance(fsm);
 
-        while(executor.hasRemainingEvents()) {
-            executor.processRemainingEvents();
+            fsm.setRunning(true);
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+
+            while (executor.hasRemainingEvents()) {
+                executor.processRemainingEvents();
+            }
+
+            fsm.setRunning(false);
+
+            var expectedEvtList = Arrays.asList(
+                    "enter state a",                   // <- fsm:init
+                    "exit state a",                    // <- myEvent 1
+                    "enter state b",                   //
+                    "exit state b",                    // <- myEvent 2
+                    "enter state c",                   //
+//                "enter do-action-in-state-c",      // test without enter do-action-in-state-c, because position may vary
+                    "enter state ca1",                 //
+                    "enter state ca2",                 //
+                    "exit state ca2",                  // <- myEvent 2
+                    "enter state cb2",                 //
+                    "exit state ca1",                  // <- myEvent 1
+                    "enter state cb1",                 //
+                    "interrupt do-action-in-state-c",  // <- myEvent 1
+                    "exit do-action-in-state-c",       //
+                    "exit state cb1",                  //
+                    "exit state cb2",                  //
+                    "exit state c",                    //
+                    "enter state a"                    //
+            );
+
+            // test without enter do-action-in-state-c, because position may vary
+            actualEvtList.remove("enter do-action-in-state-c");
+            Assert.assertEquals(expectedEvtList, actualEvtList);
         }
-
-        fsm.setRunning(false);
-
-        var expectedEvtList = Arrays.asList(
-                "enter state a",                   // <- fsm:init
-                "exit state a",                    // <- myEvent 1
-                "enter state b",                   //
-                "exit state b",                    // <- myEvent 2
-                "enter state c",                   //
-                "enter do-action-in-state-c",      //
-                "enter state ca1",                 //
-                "enter state ca2",                 //
-                "exit state ca2",                  // <- myEvent 2
-                "enter state cb2",                 //
-                "exit state ca1",                  // <- myEvent 1
-                "enter state cb1",                 //
-                "interrupt do-action-in-state-c",  // <- myEvent 1
-                "exit do-action-in-state-c",       //
-                "exit state cb1",                  //
-                "exit state cb2",                  //
-                "exit state c",                    //
-                "enter state a"                    //
-        );
-
-        Assert.assertEquals(expectedEvtList,actualEvtList);
     }
 
     @Test
     public void nestedOrthogonalWithDoActionAsyncTest() throws InterruptedException {
 
-        var actualEvtList = new ArrayList<String>();
+        for(int i = 0; i < 10; i++) {
 
-        FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            var actualEvtList = new ArrayList<String>();
 
-        Executor executor = Executor.newInstance(fsm);
-        executor.startAsync();
+            FSM fsm = createNestedWithOrthogonal(actualEvtList);
 
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        //executor.process("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            Executor executor = Executor.newInstance(fsm);
+            executor.startAsync();
+
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            //executor.process("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
 
 
-        Thread.sleep(20000);
+            Thread.sleep(15000);
 
-        var expectedEvtList = Arrays.asList(
-                "enter state a",               // <- fsm:init
-                "exit state a",                // <- myEvent 1
-                "enter state b",               //
-                "exit state b",                // <- myEvent 2
-                "enter state c",               //
-                "enter do-action-in-state-c",  //
-                "enter state ca1",             //
-                "enter state ca2",             //
-                "exit state ca2",              // <- myEvent 2
-                "enter state cb2",             //
-                "exit state ca1",              // <- myEvent 1
-                "enter state cb1",             //
-                "exit do-action-in-state-c",   // <- timeout (sleep)
-                "exit state cb1",              // <- fsm:on-do-action-done
-                "exit state cb2",              //
-                "exit state c",                //
-                "enter state a"                //
-        );
+            var expectedEvtList = Arrays.asList(
+                    "enter state a",               // <- fsm:init
+                    "exit state a",                // <- myEvent 1
+                    "enter state b",               //
+                    "exit state b",                // <- myEvent 2
+                    "enter state c",               //
+//                "enter do-action-in-state-c",  // test without enter do-action-in-state-c, because position may vary
+                    "enter state ca1",             //
+                    "enter state ca2",             //
+                    "exit state ca2",              // <- myEvent 2
+                    "enter state cb2",             //
+                    "exit state ca1",              // <- myEvent 1
+                    "enter state cb1",             //
+                    "exit do-action-in-state-c",   // <- timeout (sleep)
+                    "exit state cb1",              // <- fsm:on-do-action-done
+                    "exit state cb2",              //
+                    "exit state c",                //
+                    "enter state a"                //
+            );
 
-        Assert.assertEquals(expectedEvtList,actualEvtList);
-
+            // test without enter do-action-in-state-c, because position may vary
+            actualEvtList.remove("enter do-action-in-state-c");
+            Assert.assertEquals(expectedEvtList, actualEvtList);
+        }
     }
 
     @Test
     public void nestedOrthogonalWithDoActionInterruptAsyncTest() throws InterruptedException {
 
-        var actualEvtList = new ArrayList<String>();
+        for(int i = 0; i < 10; i++) {
 
-        FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            var actualEvtList = new ArrayList<String>();
 
-        Executor executor = Executor.newInstance(fsm);
-        executor.startAsync();
+            FSM fsm = createNestedWithOrthogonal(actualEvtList);
 
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
-        executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            Executor executor = Executor.newInstance(fsm);
+            executor.startAsync();
+
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
 
 
-        Thread.sleep(1000);
+            Thread.sleep(2000);
 
-        var expectedEvtList = Arrays.asList(
-                "enter state a",                   // <- fsm:init
-                "exit state a",                    // <- myEvent 1
-                "enter state b",                   //
-                "exit state b",                    // <- myEvent 2
-                "enter state c",                   //
-                "enter do-action-in-state-c",      //
-                "enter state ca1",                 //
-                "enter state ca2",                 //
-                "exit state ca2",                  // <- myEvent 2
-                "enter state cb2",                 //
-                "exit state ca1",                  // <- myEvent 1
-                "enter state cb1",                 //
-                "interrupt do-action-in-state-c",  // <- myEvent 1
-                "exit do-action-in-state-c",       //
-                "exit state cb1",                  //
-                "exit state cb2",                  //
-                "exit state c",                    //
-                "enter state a"                    //
-        );
+            var expectedEvtList = Arrays.asList(
+                    "enter state a",                   // <- fsm:init
+                    "exit state a",                    // <- myEvent 1
+                    "enter state b",                   //
+                    "exit state b",                    // <- myEvent 2
+                    "enter state c",                   //
+//                "enter do-action-in-state-c",      // test without enter do-action-in-state-c, because position may vary
+                    "enter state ca1",                 //
+                    "enter state ca2",                 //
+                    "exit state ca2",                  // <- myEvent 2
+                    "enter state cb2",                 //
+                    "exit state ca1",                  // <- myEvent 1
+                    "enter state cb1",                 //
+                    "interrupt do-action-in-state-c",  // <- myEvent 1
+                    "exit do-action-in-state-c",       //
+                    "exit state cb1",                  //
+                    "exit state cb2",                  //
+                    "exit state c",                    //
+                    "enter state a"                    //
+            );
 
-        Assert.assertEquals(expectedEvtList,actualEvtList);
-
+            // test without enter do-action-in-state-c, because position may vary
+            actualEvtList.remove("enter do-action-in-state-c");
+            Assert.assertEquals(expectedEvtList, actualEvtList);
+        }
     }
 
-    private static FSM createNestedWithOrthogonal(List<String> enterExitList) {
+    private static FSM createNestedWithOrthogonal(List<String> enterExitListOrig) {
+
+        final var enterExitList = Collections.synchronizedList(enterExitListOrig);
+
         State stateA = State.newBuilder()
                 .withName("State A")
                 .withOnEntryAction((s, e) -> {System.out.println("enter state a");enterExitList.add("enter state a");})

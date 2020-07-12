@@ -131,6 +131,7 @@ interface Transition extends FSMChild {
     @Container(opposite = "transitions")
     FSM getOwningFSM();
 
+    @Doc("Only valid for transitions with {@code source-state == target-state}.")
     boolean isLocal();
 
     String getTrigger();

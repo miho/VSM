@@ -132,12 +132,13 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             );
         }
 
-        for(Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
+
+        for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
             Event evt = iter.next();
             State currentState = getCaller().getCurrentState();
 
-            if(getCaller().isVerbose()) {
+            if (getCaller().isVerbose()) {
                 log("> try-consume: " + evt.getName() +
                         (evt.isDeferred() ? " (previously deferred)" : "") + ", fsm: " + level(getCaller()));
                 log("  -> in state: " + level(getCaller()) + ":" + currentState.getName());
@@ -145,9 +146,9 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
             // if we are in a state with nested fsm we try to consume the event in the nested machine
             // before we try to consume it on the current level.
-            if(currentState instanceof FSMState) {
+            if (currentState instanceof FSMState) {
                 FSMState fsmState = (FSMState) currentState;
-                for(FSM childFSM : fsmState.getFSMs() ) {
+                for (FSM childFSM : fsmState.getFSMs()) {
                     if (childFSM != null) {
                         // if we consumed it then remove it
                         childFSM.getExecutor().trigger(evt);
@@ -162,45 +163,45 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             }
 
             // children consumed event
-            if(consumed) continue;
+            if (consumed) continue;
 
             Transition consumer = currentState.getOutgoingTransitions().
                     stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).findFirst().orElse(null);
 
             boolean guardMatches;
 
-            if(consumer!=null&&!guardMatches(consumer, evt)) {
+            if (consumer != null && !guardMatches(consumer, evt)) {
                 guardMatches = false;
                 log("  -> guard of potential consumer does not match: " + level(getCaller()));
             } else {
                 guardMatches = true;
-            }       
+            }
 
-            if(consumer!=null && guardMatches) {
+            if (consumer != null && guardMatches) {
 
                 log("  -> found consumer: " + level(getCaller()) + ":" + consumer.getTarget().getName());
                 log("     on-thread:      " + Thread.currentThread().getName());
 
                 performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
 
-                if(getCaller().getFinalState().contains(getCaller().getCurrentState())) {
+                if (getCaller().getFinalState().contains(getCaller().getCurrentState())) {
                     log("  -> final state reached. stopping.");
-                    exitDoActionOfOldState(evt,currentState,null);
+                    exitDoActionOfOldState(evt, currentState, null);
                     getCaller().setRunning(false);
                 }
 
                 // if we consume the current event, pop the corresponding entry in the queue
-                if(!consumed) {
+                if (!consumed) {
                     iter.remove();
                     consumed = true;
 
-                    if(evt.getAction()!=null) {
+                    if (evt.getAction() != null) {
                         evt.getAction().execute(evt, consumer);
                     }
                 }
 
-            } else if(!consumed) {
-                if(guardMatches && defers(getCaller().getCurrentState(), evt)) {
+            } else if (!consumed) {
+                if (guardMatches && defers(getCaller().getCurrentState(), evt)) {
                     log("  -> deferring: " + evt.getName());
                     evt.setDeferred(true);
                 } else {
@@ -211,6 +212,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             }
 
         } // end for
+
 
         return consumed;
     }
@@ -482,8 +484,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     }
 
     public void startAndWait() {
+
         getCaller().getExecutor().reset();
         getCaller().setRunning(true);
+
+        start_int();
+    }
+
+    private void start_int() {
         while(getCaller().isRunning()&&!Thread.currentThread().isInterrupted()) {
             try {
                 getCaller().getExecutor().processRemainingEvents();
@@ -495,10 +503,15 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     }
 
     public Thread startAsync() {
+
+        getCaller().getExecutor().reset();
+        getCaller().setRunning(true);
+
         Thread t = new Thread(()->{
-            startAndWait();
+            start_int();
         });
         t.start();
+
         return t;
     }
 
