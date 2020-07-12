@@ -177,19 +177,38 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             childFSM.getExecutor().trigger(evt);
 
                             if (childFSM.getExecutor().processRemainingEvents()) {
+                                consumed = true;
+
                                 log(" -> consumed");
                                 iter.remove();
-                                consumed = true;
                             }
                         }
                     } // end for each child fsm
 
-                    boolean allMatch = fsmState.getFSMs().stream()
-                            .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
+//                    if (consumed) {
+//                        log(" -> consumed");
+//                        iter.remove();
+//                    }
 
-                    if(allMatch &&!"fsm:final-state".equals(evt.getName())) {
-                        evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").build());
-                    }
+//                    boolean allMatch = fsmState.getFSMs().stream()
+//                            .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
+//
+//                    if(allMatch &&!"fsm:final-state".equals(evt.getName())) {
+//                        evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").build());
+//                    }
+                }
+
+                boolean isFSMState = currentState instanceof FSMState;
+                boolean hasDoAction = currentState.getDoAction()!=null;
+
+//                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
+//                    evtQueue.addFirst(Event.newBuilder().withName("fsm:state-done").build());
+//                }
+
+                if("fsm:on-do-action-done".equals(evt.getName())) {
+
+
+
                 }
 
                 // children consumed event
@@ -448,7 +467,15 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 doActionThread.start();
             } else {
                 // no do-action means, we are done after onEnter()
-                evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").build());
+                // evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").build());
+
+//                boolean isFSMState = newState instanceof FSMState;
+//                boolean hasDoAction = newState.getDoAction()!=null;
+//
+//                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
+//                    evtQueue.addFirst(Event.newBuilder().withName("fsm:state-done").build());
+//                }
+
             }
         } catch(Exception ex) {
             handleExecutionError(evt, oldState, newState, ex);

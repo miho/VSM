@@ -1356,9 +1356,14 @@ public class FSMTest {
             t.getActions().add(transitioned);
         });
 
+        fsm.setVerbose(true);
+
         Executor executor = Executor.newInstance(fsm);
 
+
+
         fsm.setRunning(true);
+        executor.processRemainingEvents();
         while(executor.hasRemainingEvents()) {
             executor.processRemainingEvents();
         }
