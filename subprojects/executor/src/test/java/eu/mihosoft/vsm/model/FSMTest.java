@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 public class FSMTest {
     @Test public void testATMFSM() throws InterruptedException {
 
-        for(int i = 0; i < 10; i++) {
+        for(int i = 0; i < 1; i++) {
 
             State idleState = State.newBuilder().withName("idle").withOnEntryAction(
                     (s, e) -> {
@@ -171,7 +171,7 @@ public class FSMTest {
     @Test
     public void nestedOrthogonalWithDoActionProcessingTest() {
 
-        for(int i = 0; i < 10; i++) {
+        for(int i = 0; i < 1; i++) {
 
             var actualEvtList = new ArrayList<String>();
 
@@ -272,7 +272,7 @@ public class FSMTest {
     @Test
     public void nestedOrthogonalWithDoActionAsyncTest() throws InterruptedException {
 
-        for(int i = 0; i < 10; i++) {
+        for(int i = 0; i < 1; i++) {
 
             var actualEvtList = new ArrayList<String>();
 
@@ -320,7 +320,7 @@ public class FSMTest {
     @Test
     public void nestedOrthogonalWithDoActionInterruptAsyncTest() throws InterruptedException {
 
-        for(int i = 0; i < 10; i++) {
+        for(int i = 0; i < 1; i++) {
 
             var actualEvtList = new ArrayList<String>();
 
@@ -1236,5 +1236,179 @@ public class FSMTest {
         }
 
         return fsm;
+    }
+
+    @Test
+    public void testChildrenDoneEvent() throws InterruptedException {
+
+        List<String> actualEvtList = Collections.synchronizedList(new ArrayList<>());
+
+        StateAction entryAction = (s, e) -> {
+            actualEvtList.add("enter " + s.getName());
+        };
+
+        StateAction exitAction = (s, e) -> {
+            actualEvtList.add("exit " + s.getName());
+        };
+
+        TransitionAction transitioned = (t, e) -> {
+            actualEvtList.add("transitioning from " + t.getSource().getName()
+                    + " to " + t.getTarget().getName() + ", via event " + e.getName());
+        };
+
+        State c1 = State.newBuilder()
+                .withName("c1")
+                .build();
+        State c2 = State.newBuilder()
+                .withName("c2")
+                .build();
+
+        Transition c1_c2 = Transition.newBuilder()
+                .withTrigger("fsm:state-done")
+                .withSource(c1)
+                .withTarget(c2)
+                .build();
+
+        FSM childFSM = FSM.newBuilder()
+                .withName("Child FSM")
+                .withInitialState(c1)
+                .withOwnedState(c1,c2)
+                .withFinalState(c2)
+                .withTransitions(c1_c2)
+                .build();
+
+        FSM childFSM1 = childFSM.clone();
+        childFSM1.setName("Child FSM 1");
+        childFSM1.getOwnedState().forEach(s->s.setName(s.getName() + "-fsm1"));
+        FSM childFSM2 = childFSM.clone();
+        childFSM2.setName("Child FSM 2");
+        childFSM2.getOwnedState().forEach(s->s.setName(s.getName() + "-fsm2"));
+
+        State s1 = State.newBuilder()
+                .withName("s1")
+                .build();
+
+        AtomicBoolean childFSMStateWasInterrupted = new AtomicBoolean();
+
+        FSMState childFSMState = FSMState.newBuilder()
+                .withName("ChildFSMState")
+                .withFSMs(childFSM1,childFSM2)
+                .withDoAction((s,e)-> {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException interruptedException) {
+                        Thread.currentThread().interrupt();
+                        childFSMStateWasInterrupted.set(true);
+                    }
+                })
+                .build();
+
+        AtomicBoolean s2WasInterrupted = new AtomicBoolean();
+
+        State s2 = State.newBuilder()
+                .withName("s2")
+                .withDoAction((s,e)-> {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException interruptedException) {
+                        Thread.currentThread().interrupt();
+                        s2WasInterrupted.set(true);
+                    }
+                })
+                .build();
+
+        State s3 = State.newBuilder()
+                .withName("s3")
+                .build();
+
+        Transition s1_childFSMState = Transition.newBuilder()
+                .withTrigger("fsm:state-done")
+                .withSource(s1)
+                .withTarget(childFSMState)
+                .build();
+
+        Transition childFSMState_s2 = Transition.newBuilder()
+                .withTrigger("fsm:final-state")
+                .withSource(childFSMState)
+                .withTarget(s2)
+                .build();
+
+        Transition s2_s3 = Transition.newBuilder()
+                .withTrigger("fsm:state-done")
+                .withSource(s2)
+                .withTarget(s3)
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withName("FSM")
+                .withInitialState(s1)
+                .withOwnedState(s1,childFSMState,s2,s3)
+                .withFinalState(s3)
+                .withTransitions(s1_childFSMState, childFSMState_s2, s2_s3)
+                .build();
+
+        fsm.vmf().content().stream(State.class).forEach(s-> {
+            s.setOnEntryAction(entryAction);
+            s.setOnExitAction(exitAction);
+        });
+
+        fsm.vmf().content().stream(Transition.class).forEach(t-> {
+            t.getActions().add(transitioned);
+        });
+
+        Executor executor = Executor.newInstance(fsm);
+
+        fsm.setRunning(true);
+        while(executor.hasRemainingEvents()) {
+            executor.processRemainingEvents();
+        }
+        fsm.setRunning(false);
+
+        var expectedEvtList = Arrays.asList(
+                "enter s1",           // <- fsm:init
+
+                "exit s1",            // <- fsm:state-done
+                "transitioning from s1 to ChildFSMState, via event fsm:state-done",
+                "enter ChildFSMState",
+
+                // FSM1 (Region 1)
+                "enter c1-fsm1",      // <- fsm:init
+
+                "exit c1-fsm1",       // <- fsm:state-done
+                "transitioning from c1-fsm1 to c2-fsm1, via event fsm:state-done",
+                "enter c2-fsm1",
+
+                "exit c2-fsm1",       // <- fsm stopped (no event generated)
+
+                // FSM1 (Region 2)
+                "enter c1-fsm2",      // <- fsm:init
+
+                "exit c1-fsm2",       // <- fsm:state-done
+                "transitioning from c1-fsm2 to c2-fsm2, via event fsm:state-done",
+                "enter c2-fsm2",
+
+                "exit c2-fsm2",       // <- fsm stopped (no event generated)
+                "exit ChildFSMState", // <- fsm:final-state (all regions of ChildFSMState reached final state)
+                "transitioning from ChildFSMState to s2, via event fsm:final-state",
+                "enter s2",
+
+                "exit s2",            // <- fsm:state-done (does not interrupt do-action of s2)
+                "transitioning from s2 to s3, via event fsm:state-done",
+                "enter s3",
+                "exit s3"            // <- fsm stopped (no event generated)
+        );
+
+        System.out.println(String.join("\n", actualEvtList));
+
+        Assert.assertEquals(expectedEvtList, actualEvtList);
+
+        Assert.assertTrue("do-action of childFSMState should be" +
+                        " interrupted since there is a consuming transition that causes childFSMState to exit (evt: fsm:final-state)",
+                childFSMStateWasInterrupted.get());
+
+        Assert.assertFalse("do-action of s2 should not be" +
+                        " interrupted since there is no consuming transition that would cause s2 to exit (evt: fsm:state-done)",
+                s2WasInterrupted.get());
+
     }
 }

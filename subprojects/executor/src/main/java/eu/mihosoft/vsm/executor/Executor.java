@@ -183,6 +183,13 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             }
                         }
                     } // end for each child fsm
+
+                    boolean allMatch = fsmState.getFSMs().stream()
+                            .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
+
+                    if(allMatch &&!"fsm:final-state".equals(evt.getName())) {
+                        evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").build());
+                    }
                 }
 
                 // children consumed event
