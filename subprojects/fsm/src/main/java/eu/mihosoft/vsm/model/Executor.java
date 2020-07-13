@@ -84,5 +84,18 @@ public interface Executor {
      */
     boolean hasRemainingEvents();
 
+    /**
+     * Execution mode.
+     */
+    enum ExecutionMode {
+        /**
+         * Regions aka nested FSMs are processed in the thread of the executed FSM.
+         */
+        SERIAL_REGIONS,
+        /**
+         * Regions aka nested FSMs are processed parallel.
+         */
+        PARALLEL_REGIONS,
+    }
 
 }
