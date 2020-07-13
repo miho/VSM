@@ -308,6 +308,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         log("  -> discarding unconsumed event: " + evt.getName() + " in FSM " + level(getCaller()));
                         // discard event (not deferred)
                         try {
+                            eventLock.lock();
                             if (!removed) {
                                 iter.remove();
                             }
