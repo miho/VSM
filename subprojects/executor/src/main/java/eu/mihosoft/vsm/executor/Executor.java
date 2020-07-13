@@ -625,6 +625,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     @Override
     public boolean hasRemainingEvents() {
+
         boolean eventsInQueue = !evtQueue.isEmpty();
         boolean actionsRunning = doActionThread!=null&&doActionThread.isAlive();
 
@@ -632,6 +633,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         if(actionsRunning) return true;
 
         State state = getCaller().getCurrentState();
+
+        if(getCaller().isRunning()&&state==null) return true; // initial state
 
         if(state instanceof FSMState) {
             FSMState fsmState = (FSMState) state;

@@ -1363,7 +1363,6 @@ public class FSMTest {
 
 
         fsm.setRunning(true);
-        executor.processRemainingEvents();
         while(executor.hasRemainingEvents()) {
             executor.processRemainingEvents();
         }
