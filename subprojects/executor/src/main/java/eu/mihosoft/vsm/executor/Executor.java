@@ -179,7 +179,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
                             if (childFSM.getExecutor().processRemainingEvents()) {
 
-                                if (!removed) {
+                                if (!removed && evt.isConsumed()) {
                                     iter.remove();
                                     removed = true;
                                 }
@@ -257,6 +257,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         if (evt.getAction() != null) {
                             evt.getAction().execute(evt, consumer);
                         }
+
+                        evt.setConsumed(true);
                     }
 
                 } else if (!consumed) {

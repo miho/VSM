@@ -151,5 +151,6 @@ interface Event {
     Object[] getArgs();
     EventConsumedAction getAction();
     boolean isDeferred();
+    boolean isConsumed();
 }
 
