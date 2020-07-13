@@ -83,7 +83,7 @@ interface FSM {
 
     boolean isRunning();
 
-    @DefaultValue("java.time.Duration.ofSeconds(10)")
+    @DefaultValue("java.time.Duration.ofSeconds(1)")
     Duration getMaxCancellationTimeout();
 
     Executor getExecutor();
@@ -111,7 +111,7 @@ interface State extends FSMChild {
     StateAction getDoAction();
     StateAction getOnExitAction();
 
-    @DefaultValue("java.time.Duration.ofSeconds(10)")
+    @DefaultValue("java.time.Duration.ofSeconds(1)")
     Duration getCancellationTimeout();
 
 //    boolean isExited();
