@@ -128,6 +128,9 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
     }
 
+    boolean firedFinalState   = false;
+    boolean firedDoActionDone = false;
+
     public boolean processRemainingEvents() {
 
         // everything modified concurrently with start(), reset(), stop() etc. must be inside
@@ -139,6 +142,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
             // set current state to initial state if current state is null
             if(getCaller().getCurrentState()==null) {
+                firedDoActionDone = false;
+                firedFinalState   = false;
                 performStateTransition(
                         Event.newBuilder().withName("fsm:init").build(),
                         null,
@@ -152,6 +157,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
 
         boolean consumed = false;
+        State prevState = getCaller().getCurrentState();
 
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
@@ -161,6 +167,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 Event evt = iter.next();
                 boolean removed = false;
                 State currentState = getCaller().getCurrentState();
+                boolean stateChanged = currentState!=prevState;
+
+                if(stateChanged){
+                    firedDoActionDone = false;
+                    firedFinalState   = false;
+                }
+
+                prevState = currentState;
 
                 if (getCaller().isVerbose()) {
                     log("> try-consume: " + evt.getName() +
@@ -199,16 +213,25 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
                     if(allMatch &&!"fsm:final-state".equals(evt.getName())) {
-                        evtQueue.add(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                        evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                    }
+                } else {
+                    if(!"fsm:final-state".equals(evt.getName())) {
+                        evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
                     }
                 }
 
-                boolean isFSMState = currentState instanceof FSMState;
-                boolean hasDoAction = currentState.getDoAction()!=null;
-                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
-                    evtQueue.addFirst(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
+                if("fsm:final-state".equals(evt.getName())) {
+                    firedFinalState = true;
                 }
 
+                if("fsm:on-do-action-done".equals(evt.getName())) {
+                    firedDoActionDone = true;
+                }
+
+                if(!"fsm:state-done".equals(evt.getName()) && firedFinalState && firedDoActionDone) {
+                    evtQueue.addFirst(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
+                }
 
                 // children consumed event
                 if (consumed) {
@@ -242,7 +265,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
                     if (getCaller().getFinalState().contains(getCaller().getCurrentState())) {
                         log("  -> final state reached. stopping.");
-                        exitDoActionOfOldState(evt, currentState, null);
+                        exitDoActionOfOldState(evt, getCaller().getCurrentState(), null);
                         getCaller().setRunning(false);
                     }
 
@@ -272,6 +295,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         }
                     }
                 }
+
 
             } finally {
                 fsmLock.unlock();
@@ -456,7 +480,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             StateAction doAction = newState.getDoAction();
             if(doAction!=null) {
                 Runnable doActionDone = ()->{
-                    evtQueue.add(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
+                    evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
                 };
                 doActionFuture = new CompletableFuture<>();
                 doActionThread = new Thread(()->{
@@ -474,8 +498,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 doActionThread.start();
             } else {
                 // no do-action means, we are done after onEnter()
-                // evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done".withLocal(true).build());
-//
+                evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
+
 //                boolean isFSMState = newState instanceof FSMState;
 //                boolean hasDoAction = newState.getDoAction()!=null;
 //
@@ -629,12 +653,19 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         boolean eventsInQueue = !evtQueue.isEmpty();
         boolean actionsRunning = doActionThread!=null&&doActionThread.isAlive();
 
+//        System.out.println("!!!events in queue: " + eventsInQueue);
+//        System.out.println("!!!actions running: " + actionsRunning);
+
         if(eventsInQueue) return true;
         if(actionsRunning) return true;
 
         State state = getCaller().getCurrentState();
 
-        if(getCaller().isRunning()&&state==null) return true; // initial state
+        boolean initialRun = getCaller().isRunning()&&state==null;
+
+//        System.out.println("!!!initial run: " + initialRun);
+
+        if(initialRun) return true; // initial state
 
         if(state instanceof FSMState) {
             FSMState fsmState = (FSMState) state;

@@ -1416,4 +1416,101 @@ public class FSMTest {
                 s2WasInterrupted.get());
 
     }
+
+    @Test(timeout = 10000)
+    public void testStateDone() throws InterruptedException {
+
+        List<String> actualEvtList = Collections.synchronizedList(new ArrayList<>());
+
+        StateAction entryAction = (s, e) -> {
+            actualEvtList.add("enter " + s.getName());
+        };
+
+        StateAction exitAction = (s, e) -> {
+            actualEvtList.add("exit " + s.getName());
+        };
+
+        TransitionAction transitioned = (t, e) -> {
+            actualEvtList.add("transitioning from " + t.getSource().getName()
+                    + " to " + t.getTarget().getName() + ", via event " + e.getName());
+        };
+
+        State s1 = State.newBuilder()
+                .withName("s1")
+                .build();
+        State s2 = State.newBuilder()
+                .withName("s2")
+                .build();
+
+        State s3 = State.newBuilder()
+                .withName("s3")
+                .build();
+
+        Transition s1_s2 = Transition.newBuilder()
+                .withTrigger("fsm:state-done")
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
+
+        Transition s2_s3 = Transition.newBuilder()
+                .withTrigger("fsm:state-done")
+                .withSource(s2)
+                .withTarget(s3)
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withName("FSM")
+                .withInitialState(s1)
+                .withOwnedState(s1,s2,s3)
+                .withFinalState(s3)
+                .withTransitions(s1_s2, s2_s3)
+                .build();
+
+
+        fsm.vmf().content().stream(State.class).forEach(s-> {
+            s.setOnEntryAction(entryAction);
+            s.setOnExitAction(exitAction);
+        });
+
+        fsm.vmf().content().stream(Transition.class).forEach(t-> {
+            t.getActions().add(transitioned);
+        });
+
+        //fsm.setVerbose(true);
+
+        Executor executor = Executor.newInstance(fsm);
+
+
+        fsm.setRunning(true);
+//        while(executor.hasRemainingEvents()) {
+//            executor.processRemainingEvents();
+//        }
+        executor.processRemainingEvents();
+        executor.processRemainingEvents();
+        executor.processRemainingEvents();
+        executor.processRemainingEvents();
+        executor.processRemainingEvents();
+
+
+
+        fsm.setRunning(false);
+
+        var expectedEvtList = Arrays.asList(
+                "enter s1",           // <- fsm:init
+
+                "exit s1",            // <- fsm:state-done
+                "transitioning from s1 to s2, via event fsm:state-done",
+                "enter s2",
+
+                "exit s2",            // <- fsm:state-done
+                "transitioning from s2 to s3, via event fsm:state-done",
+                "enter s3",
+                "exit s3"            // <- fsm stopped (no event generated)
+        );
+
+        System.out.println(String.join("\n", actualEvtList));
+
+        Assert.assertEquals(expectedEvtList, actualEvtList);
+
+    }
 }
