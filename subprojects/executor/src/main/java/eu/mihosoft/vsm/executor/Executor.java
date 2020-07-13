@@ -277,20 +277,20 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
                     // if we consume the current event, pop the corresponding entry in the queue
                     if (!consumed) {
-                        if (!removed) {
-                            iter.remove();
-                        }
-                        consumed = true;
-
-                        if (evt.getAction() != null) {
-                            evt.getAction().execute(evt, consumer);
-                        }
 
                         try {
                             eventLock.lock();
+                            if (!removed) {
+                                iter.remove();
+                            }
+                            consumed = true;
                             evt.setConsumed(true);
                         } finally {
                             eventLock.unlock();
+                        }
+
+                        if (evt.getAction() != null) {
+                            evt.getAction().execute(evt, consumer);
                         }
 
                     }
@@ -307,8 +307,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     } else {
                         log("  -> discarding unconsumed event: " + evt.getName() + " in FSM " + level(getCaller()));
                         // discard event (not deferred)
-                        if (!removed) {
-                            iter.remove();
+                        try {
+                            if (!removed) {
+                                iter.remove();
+                            }
+                        } finally {
+                            eventLock.unlock();
                         }
                     }
                 }
@@ -327,8 +331,10 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                                 AtomicBoolean removedParam) {
         FSMState fsmState = currentState;
         var threads = new ArrayList<Thread>();
+
         for (FSM childFSM : fsmState.getFSMs()) {
             Runnable r = () -> {
+
                     if (evt != null && !evt.isLocal()) {
                         // trigger in child fsm if not local to our fsm
                         // Event must not be modified concurrently if this runs in multiple threads
@@ -338,19 +344,17 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     // process event of non local and potential internal events
                     childFSM.getExecutor().processRemainingEvents();
 
-                    boolean isEvtConsumed;
-
                     try {
                         eventLock.lock();
-                        isEvtConsumed = evt.isConsumed();
+
+                        // if we consumed it then remove it
+                        if (evt != null && !removedParam.get() && evt.isConsumed()) {
+                            iter.remove();
+                            removedParam.set(true);
+                        }
+
                     } finally {
                         eventLock.unlock();
-                    }
-
-                    // if we consumed it then remove it
-                    if (evt != null && !removedParam.get() && isEvtConsumed) {
-                        iter.remove();
-                        removedParam.set(true);
                     }
 
             };
