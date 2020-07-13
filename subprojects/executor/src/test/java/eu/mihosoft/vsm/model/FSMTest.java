@@ -22,8 +22,8 @@ public class FSMTest {
     private static final eu.mihosoft.vsm.model.Executor.ExecutionMode MODE
             = eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS;
 
-    private static final int NUM_ITERATIONS_LARGE_TESTS = 25;
-    private static final int NUM_ITERATIONS_SMALL_TESTS = 1000;
+    private static final int NUM_ITERATIONS_LARGE_TESTS = 100;
+    private static final int NUM_ITERATIONS_SMALL_TESTS = 10000;
 
     @Test public void testATMFSM() throws InterruptedException {
 
@@ -198,6 +198,15 @@ public class FSMTest {
 
             while (executor.hasRemainingEvents()) {
                 executor.processRemainingEvents();
+            }
+
+            if(MODE == eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS) {
+
+                Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
+
+                while (executor.hasRemainingEvents()) {
+                    executor.processRemainingEvents();
+                }
             }
 
 
@@ -1402,6 +1411,15 @@ public class FSMTest {
 
             while (executor.hasRemainingEvents()) {
                 executor.processRemainingEvents();
+            }
+
+            if(MODE == eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS) {
+
+                Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
+
+                while (executor.hasRemainingEvents()) {
+                    executor.processRemainingEvents();
+                }
             }
 
             fsm.setRunning(false);
