@@ -18,9 +18,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class FSMTest {
+
+    private static final eu.mihosoft.vsm.model.Executor.ExecutionMode MODE
+            = eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS;
+
     @Test public void testATMFSM() throws InterruptedException {
 
-        for(int i = 0; i < 1; i++) {
+        for(int i = 0; i < 10; i++) {
 
             State idleState = State.newBuilder().withName("idle").withOnEntryAction(
                     (s, e) -> {
@@ -129,7 +133,7 @@ public class FSMTest {
                 }
             });
 
-            Executor executor = Executor.newInstance(fsm);
+            Executor executor = Executor.newInstance(fsm, MODE);
 
             executor.startAsync();
 
@@ -172,13 +176,13 @@ public class FSMTest {
     @Test
     public void nestedOrthogonalWithDoActionProcessingTest() {
 
-        for(int i = 0; i < 1; i++) {
+        for(int i = 0; i < 10; i++) {
 
             var actualEvtList = new ArrayList<String>();
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList);
 
-            Executor executor = Executor.newInstance(fsm);
+            Executor executor = Executor.newInstance(fsm, MODE);
 //        executor.startAsync();
             fsm.setRunning(true);
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -215,7 +219,10 @@ public class FSMTest {
 
             // test without enter do-action-in-state-c, because position may vary
             actualEvtList.remove("enter do-action-in-state-c");
-            Assert.assertEquals(expectedEvtList, actualEvtList);
+
+            // A better way to verify correct execution is to trace child FSMs aka regions individually.
+            // But in this configuration we cannot test for a specific sequence.
+            Assert.assertEquals(expectedEvtList.size(), actualEvtList.size());
         }
     }
 
@@ -228,7 +235,7 @@ public class FSMTest {
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList);
 
-            Executor executor = Executor.newInstance(fsm);
+            Executor executor = Executor.newInstance(fsm, MODE);
 
             fsm.setRunning(true);
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -266,20 +273,23 @@ public class FSMTest {
 
             // test without enter do-action-in-state-c, because position may vary
             actualEvtList.remove("enter do-action-in-state-c");
-            Assert.assertEquals(expectedEvtList, actualEvtList);
+
+            // A better way to verify correct execution is to trace child FSMs aka regions individually.
+            // But in this configuration we cannot test for a specific sequence.
+            Assert.assertEquals(expectedEvtList.size(), actualEvtList.size());
         }
     }
 
     @Test
     public void nestedOrthogonalWithDoActionAsyncTest() throws InterruptedException {
 
-        for(int i = 0; i < 1; i++) {
+        for(int i = 0; i < 10; i++) {
 
             var actualEvtList = new ArrayList<String>();
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList);
 
-            Executor executor = Executor.newInstance(fsm);
+            Executor executor = Executor.newInstance(fsm, MODE);
             executor.startAsync();
 
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -314,20 +324,23 @@ public class FSMTest {
 
             // test without enter do-action-in-state-c, because position may vary
             actualEvtList.remove("enter do-action-in-state-c");
-            Assert.assertEquals(expectedEvtList, actualEvtList);
+
+            // A better way to verify correct execution is to trace child FSMs aka regions individually.
+            // But in this configuration we cannot test for a specific sequence.
+            Assert.assertEquals(expectedEvtList.size(), actualEvtList.size());
         }
     }
 
     @Test
     public void nestedOrthogonalWithDoActionInterruptAsyncTest() throws InterruptedException {
 
-        for(int i = 0; i < 1; i++) {
+        for(int i = 0; i < 10; i++) {
 
             var actualEvtList = new ArrayList<String>();
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList);
 
-            Executor executor = Executor.newInstance(fsm);
+            Executor executor = Executor.newInstance(fsm, MODE);
             executor.startAsync();
 
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -363,7 +376,10 @@ public class FSMTest {
 
             // test without enter do-action-in-state-c, because position may vary
             actualEvtList.remove("enter do-action-in-state-c");
-            Assert.assertEquals(expectedEvtList, actualEvtList);
+
+            // A better way to verify correct execution is to trace child FSMs aka regions individually.
+            // But in this configuration we cannot test for a specific sequence.
+            Assert.assertEquals(expectedEvtList.size(), actualEvtList.size());
         }
     }
 
@@ -571,7 +587,7 @@ public class FSMTest {
 
             fsm.getTransitions().add(a_a__a_b_a);
 
-            Executor executor = Executor.newInstance(fsm);
+            Executor executor = Executor.newInstance(fsm, MODE);
             fsm.setRunning(true);
             executor.process("myEvent1");
             fsm.setRunning(false);
@@ -669,7 +685,7 @@ public class FSMTest {
                 .withTransitions(openDoor,closeDoor,lockDoor,unlockDoor)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm);
+        Executor executor = Executor.newInstance(fsm, MODE);
 
         fsm.setRunning(true);
 
@@ -800,7 +816,7 @@ public class FSMTest {
                 .withTransitions(openDoor,closeDoor,lockDoor,unlockDoor)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm);
+        Executor executor = Executor.newInstance(fsm, MODE);
 
         fsm.setRunning(true);
 
@@ -930,7 +946,7 @@ public class FSMTest {
                 .withTransitions(openDoor,closeDoor,lockDoor,unlockDoor)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm);
+        Executor executor = Executor.newInstance(fsm, MODE);
 
         fsm.setRunning(true);
 
@@ -1030,7 +1046,7 @@ public class FSMTest {
 //                .withTransitions(t)
 //                .build();
 //
-//        Executor executor = Executor.newInstance(fsm);
+//        Executor executor = Executor.newInstance(fsm, MODE);
 //
 //        fsm.setRunning(true);
 //        executor.process("event");
@@ -1061,7 +1077,7 @@ public class FSMTest {
                 System.out.println("\nCase Priority to C2:");
                 List<String> actualEvtList = new ArrayList<>();
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, true);
-                Executor executor = Executor.newInstance(fsm);
+                Executor executor = Executor.newInstance(fsm, MODE);
 
                 Thread thread = executor.startAsync();
 
@@ -1098,7 +1114,7 @@ public class FSMTest {
                 System.out.println("\nCase Priority to S2:");
                 List<String> actualEvtList = new ArrayList<>();
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, false);
-                Executor executor = Executor.newInstance(fsm);
+                Executor executor = Executor.newInstance(fsm, MODE);
 
                 Thread thread = executor.startAsync();
 
@@ -1370,11 +1386,10 @@ public class FSMTest {
 
         fsm.setVerbose(true);
 
-        Executor executor = Executor.newInstance(fsm);
+        Executor executor = Executor.newInstance(fsm, MODE);
 
         fsm.setRunning(true);
         while(executor.hasRemainingEvents()) {
-            Thread.sleep(50);
             executor.processRemainingEvents();
         }
         fsm.setRunning(false);
@@ -1415,6 +1430,8 @@ public class FSMTest {
 
         System.out.println(String.join("\n", actualEvtList));
 
+        // order of child fsms implementation specific
+        // (we only test size (number of state transitions + whether do-actions have been interrupted resp. properly executed) )
         Assert.assertEquals(expectedEvtList.size(), actualEvtList.size());
 
         Assert.assertTrue("do-action of childFSMState should be" +
@@ -1488,7 +1505,7 @@ public class FSMTest {
 
         fsm.setVerbose(true);
 
-        Executor executor = Executor.newInstance(fsm);
+        Executor executor = Executor.newInstance(fsm, MODE);
 
         fsm.setRunning(true);
         while(executor.hasRemainingEvents()) {
