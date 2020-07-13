@@ -181,6 +181,8 @@ public class FSMTest {
 
         for(int i = 0; i < NUM_ITERATIONS_LARGE_TESTS; i++) {
 
+            System.out.println("-------------- nestedOrthogonalWithDoActionProcessingTest(), iteration: " + i);
+
             var actualEvtList = new ArrayList<String>();
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList);
@@ -1258,10 +1260,12 @@ public class FSMTest {
         return fsm;
     }
 
-    @Test(timeout = 90000)
+    @Test()
     public void testChildrenDoneEvent() throws InterruptedException {
 
         for (int i = 0; i < NUM_ITERATIONS_LARGE_TESTS; i++) {
+
+            System.out.println("-------------- testChildrenDoneEvent(), iteration: " + i);
 
             List<String> actualEvtList = Collections.synchronizedList(new ArrayList<>());
 
