@@ -140,6 +140,9 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             if (!getCaller().isRunning()) return false;
             if (getCaller().getOwnedState().isEmpty()) return false;
 
+
+
+
             // set current state to initial state if current state is null
             if(getCaller().getCurrentState()==null) {
                 firedDoActionDone = false;
@@ -156,12 +159,21 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             fsmLock.unlock();
         }
 
+
         boolean consumed = false;
         State prevState = getCaller().getCurrentState();
 
-        for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
+
+        Iterator<Event> iter = evtQueue.iterator();
+
+//        System.out.println("HERE 3: "+iter.hasNext());
+
+        for (; iter.hasNext() && getCaller().isRunning(); ) {
+
+//            System.out.println("!!! HERE " + level(getCaller()));
 
             try {
+
                 fsmLock.lock();
 
                 Event evt = iter.next();
@@ -188,17 +200,19 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     FSMState fsmState = (FSMState) currentState;
                     for (FSM childFSM : fsmState.getFSMs()) {
                         if (childFSM != null) {
+
                             if(!evt.isLocal()) {
-                                // if we consumed it then remove it
+                                // trigger in child fsm if not local to our fsm
                                 childFSM.getExecutor().trigger(evt);
                             }
 
-                            if (childFSM.getExecutor().processRemainingEvents()) {
+                            // process event of not local and potential internal events
+                            childFSM.getExecutor().processRemainingEvents();
 
-                                if (!removed && evt.isConsumed()) {
-                                    iter.remove();
-                                    removed = true;
-                                }
+                            // if we consumed it then remove it
+                            if (!removed && evt.isConsumed()) {
+                                iter.remove();
+                                removed = true;
                             }
                         }
                     } // end for each child fsm
@@ -212,12 +226,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     boolean allMatch = fsmState.getFSMs().stream()
                             .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
-                    if(allMatch &&!"fsm:final-state".equals(evt.getName())) {
+                    if(allMatch && !firedFinalState) {
                         evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                        firedFinalState = true;
                     }
                 } else {
-                    if(!"fsm:final-state".equals(evt.getName())) {
+                    if(!firedFinalState) {
                         evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                        firedFinalState = true;
                     }
                 }
 
@@ -230,7 +246,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 }
 
                 if(!"fsm:state-done".equals(evt.getName()) && firedFinalState && firedDoActionDone) {
-                    evtQueue.addFirst(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
+                    evtQueue.add(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
                 }
 
                 // children consumed event
@@ -239,7 +255,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 }
 
                 Transition consumer = currentState.getOutgoingTransitions().
-                        stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).findFirst().orElse(null);
+                        stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).findFirst().
+                        orElse(null);
 
                 boolean guardMatches;
 
@@ -295,8 +312,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         }
                     }
                 }
-
-
             } finally {
                 fsmLock.unlock();
             }
@@ -499,14 +514,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             } else {
                 // no do-action means, we are done after onEnter()
                 evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
-
-//                boolean isFSMState = newState instanceof FSMState;
-//                boolean hasDoAction = newState.getDoAction()!=null;
-//
-//                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
-//                    evtQueue.add(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
-//                }
-
             }
         } catch(Exception ex) {
             handleExecutionError(evt, oldState, newState, ex);
@@ -650,32 +657,127 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     @Override
     public boolean hasRemainingEvents() {
 
-        boolean eventsInQueue = !evtQueue.isEmpty();
-        boolean actionsRunning = doActionThread!=null&&doActionThread.isAlive();
+        try {
+            fsmLock.lock();
+
+            if (!getCaller().isRunning()) return false;
+
+            boolean eventsInQueue = !evtQueue.isEmpty();
+            boolean actionsRunning = doActionThread != null && doActionThread.isAlive();
 
 //        System.out.println("!!!events in queue: " + eventsInQueue);
 //        System.out.println("!!!actions running: " + actionsRunning);
 
-        if(eventsInQueue) return true;
-        if(actionsRunning) return true;
+            if (eventsInQueue) return true;
+            if (actionsRunning) return true;
 
-        State state = getCaller().getCurrentState();
+            State state = getCaller().getCurrentState();
 
-        boolean initialRun = getCaller().isRunning()&&state==null;
+            boolean initialRun = getCaller().isRunning() && state == null;
 
 //        System.out.println("!!!initial run: " + initialRun);
 
-        if(initialRun) return true; // initial state
+            if (initialRun) return true; // initial state
 
-        if(state instanceof FSMState) {
-            FSMState fsmState = (FSMState) state;
-            boolean childrenExec = fsmState.getFSMs().stream().filter(fsm->fsm.getExecutor()!=null).
-                    map(fsm->fsm.getExecutor().hasRemainingEvents()).
-                    anyMatch(hasExec->hasExec);
+            if (state instanceof FSMState) {
+                FSMState fsmState = (FSMState) state;
+                boolean childrenExec = fsmState.getFSMs().stream().filter(fsm -> fsm.getExecutor() != null).
+                        map(fsm -> fsm.getExecutor().hasRemainingEvents()).
+                        anyMatch(hasExec -> hasExec);
 
-            return childrenExec;
+                return childrenExec;
+            }
+
+            return false;
+
+        } finally {
+            fsmLock.unlock();
+        }
+    }
+
+    private static class SynchronizedQueue {
+        private final Deque queue;
+        private final ReentrantLock lock;
+        public SynchronizedQueue(Deque<Event> queue) {
+            this.queue = queue;
+            this.lock = new ReentrantLock();
         }
 
-        return false;
+
+        public void add(Event event) {
+            try {
+                lock.lock();
+                queue.add(event);
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public void addFirst(Event event) {
+            try {
+                lock.lock();
+                queue.addFirst(event);
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public boolean isEmpty() {
+            try {
+                lock.lock();
+                return queue.isEmpty();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public void clear() {
+            try {
+                lock.lock();
+                queue.clear();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public Iterator<Event> iterator() {
+            try {
+                lock.lock();
+                return new Iterator<Event>() {
+                    private Iterator<Event> internal = queue.iterator();
+                    @Override
+                    public boolean hasNext() {
+                        try {
+                            lock.lock();
+                            return internal.hasNext();
+                        } finally {
+                            lock.unlock();
+                        }
+                    }
+
+                    @Override
+                    public Event next() {
+                        try {
+                            lock.lock();
+                            return internal.next();
+                        } finally {
+                            lock.unlock();
+                        }
+                    }
+
+                    @Override
+                    public void remove() {
+                        try {
+                            lock.lock();
+                            internal.remove();
+                        } finally {
+                            lock.unlock();
+                        }
+                    }
+                };
+            } finally {
+                lock.unlock();
+            }
+        }
     }
 }
