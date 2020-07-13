@@ -18,6 +18,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     private final int depth;
     private final FSM fsm;
     private final ReentrantLock fsmLock = new ReentrantLock();
+    private final ReentrantLock eventLock = new ReentrantLock();
 
     private final List<Executor> pathToRoot = new ArrayList<>();
 
@@ -143,9 +144,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             fsmLock.lock();
             if (!getCaller().isRunning()) return false;
             if (getCaller().getOwnedState().isEmpty()) return false;
-
-
-
 
             // set current state to initial state if current state is null
             if(getCaller().getCurrentState()==null) {
@@ -288,13 +286,24 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             evt.getAction().execute(evt, consumer);
                         }
 
-                        evt.setConsumed(true);
+                        try {
+                            eventLock.lock();
+                            evt.setConsumed(true);
+                        } finally {
+                            eventLock.unlock();
+                        }
+
                     }
 
                 } else if (!consumed) {
                     if (guardMatches && defers(getCaller().getCurrentState(), evt)) {
                         log("  -> deferring: " + evt.getName());
-                        evt.setDeferred(true);
+                        try {
+                            eventLock.lock();
+                            evt.setDeferred(true);
+                        } finally {
+                            eventLock.unlock();
+                        }
                     } else {
                         log("  -> discarding unconsumed event: " + evt.getName() + " in FSM " + level(getCaller()));
                         // discard event (not deferred)
@@ -329,11 +338,21 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     // process event of non local and potential internal events
                     childFSM.getExecutor().processRemainingEvents();
 
+                    boolean isEvtConsumed;
+
+                    try {
+                        eventLock.lock();
+                        isEvtConsumed = evt.isConsumed();
+                    } finally {
+                        eventLock.unlock();
+                    }
+
                     // if we consumed it then remove it
-                    if (evt != null && !removedParam.get() && evt.isConsumed()) {
+                    if (evt != null && !removedParam.get() && isEvtConsumed) {
                         iter.remove();
                         removedParam.set(true);
                     }
+
             };
             if(mode == ExecutionMode.PARALLEL_REGIONS) {
                 Thread thread = new Thread(r);
@@ -350,7 +369,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             try {
                 t.join();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         });
 
