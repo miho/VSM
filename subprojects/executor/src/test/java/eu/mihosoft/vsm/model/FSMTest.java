@@ -177,7 +177,7 @@ public class FSMTest {
     }
 
     @Test
-    public void nestedOrthogonalWithDoActionProcessingTest() {
+    public void nestedOrthogonalWithDoActionProcessingTest() throws InterruptedException {
 
         for(int i = 0; i < NUM_ITERATIONS_LARGE_TESTS; i++) {
 
@@ -201,6 +201,8 @@ public class FSMTest {
             }
 
             // check whether hasRemainingEvents() has bugs
+
+            Thread.sleep(1000);
 
             while (executor.hasRemainingEvents()) {
                 executor.processRemainingEvents();
@@ -1404,9 +1406,17 @@ public class FSMTest {
             Executor executor = Executor.newInstance(fsm, MODE);
 
             fsm.setRunning(true);
+            
             while (executor.hasRemainingEvents()) {
                 executor.processRemainingEvents();
             }
+
+            Thread.sleep(100);
+
+            while (executor.hasRemainingEvents()) {
+                executor.processRemainingEvents();
+            }
+
             fsm.setRunning(false);
 
             var expectedEvtList = Arrays.asList(
