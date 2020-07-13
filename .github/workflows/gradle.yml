@@ -26,7 +26,7 @@ jobs:
       run: ./gradlew build
     - uses: actions/upload-artifact@v1
       with:
-        name: Test Results
+        name: Test Results (build-ubuntu-jdk11)
         path: subprojects/executor/build/reports  
 
   build-windows-jdk14:
@@ -44,7 +44,7 @@ jobs:
       run: ./gradlew build
     - uses: actions/upload-artifact@v1
       with:
-        name: Test Results
+        name: Test Results (build-windows-jdk14)
         path: subprojects/executor/build/reports            
 
   build-macos-jdk14:
@@ -62,7 +62,7 @@ jobs:
       run: ./gradlew build
     - uses: actions/upload-artifact@v1
       with:
-        name: Test Results
+        name: Test Results (build-macos-jdk14)
         path: subprojects/executor/build/reports
 
 
@@ -81,5 +81,5 @@ jobs:
       run: ./gradlew build
     - uses: actions/upload-artifact@v1
       with:
-        name: Test Results
+        name: Test Results (build-macos-jdk13)
         path: subprojects/executor/build/reports 
