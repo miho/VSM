@@ -24,8 +24,8 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
-    - uses: actions/upload-artifact@v1
     - name: upload test results
+      uses: actions/upload-artifact@v1
       if: ${{ always() }}  
       with:
         name: Test Results (build-ubuntu-jdk11)
@@ -44,8 +44,9 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
-    - uses: actions/upload-artifact@v1
     - name: upload test results
+      uses: actions/upload-artifact@v1
+      if: ${{ always() }}  
       with:
         name: Test Results (build-windows-jdk14)
         path: subprojects/executor/build/reports            
@@ -63,8 +64,9 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
-    - uses: actions/upload-artifact@v1
     - name: upload test results
+      uses: actions/upload-artifact@v1
+      if: ${{ always() }}  
       with:
         name: Test Results (build-macos-jdk14)
         path: subprojects/executor/build/reports
@@ -83,8 +85,9 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
-    - uses: actions/upload-artifact@v1
     - name: upload test results
+      uses: actions/upload-artifact@v1
+      if: ${{ always() }}  
       with:
         name: Test Results (build-macos-jdk13)
         path: subprojects/executor/build/reports 
