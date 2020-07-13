@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.*;
 
 import eu.mihosoft.vsm.executor.Executor;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.*;
@@ -1238,7 +1239,7 @@ public class FSMTest {
         return fsm;
     }
 
-    @Test
+    @Test(timeout = 10000)
     public void testChildrenDoneEvent() throws InterruptedException {
 
         List<String> actualEvtList = Collections.synchronizedList(new ArrayList<>());

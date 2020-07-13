@@ -152,5 +152,6 @@ interface Event {
     EventConsumedAction getAction();
     boolean isDeferred();
     boolean isConsumed();
+    boolean isLocal();
 }
 

@@ -174,8 +174,10 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     FSMState fsmState = (FSMState) currentState;
                     for (FSM childFSM : fsmState.getFSMs()) {
                         if (childFSM != null) {
-                            // if we consumed it then remove it
-                            childFSM.getExecutor().trigger(evt);
+                            if(!evt.isLocal()) {
+                                // if we consumed it then remove it
+                                childFSM.getExecutor().trigger(evt);
+                            }
 
                             if (childFSM.getExecutor().processRemainingEvents()) {
 
@@ -183,32 +185,30 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                                     iter.remove();
                                     removed = true;
                                 }
-
-                                log(" -> consumed");
-                                consumed = true;
-
                             }
                         }
                     } // end for each child fsm
 
+                    consumed = evt.isConsumed();
+
+                    if(evt.isConsumed()) {
+                        log(" -> consumed " + evt.getName());
+                    }
 
                     boolean allMatch = fsmState.getFSMs().stream()
                             .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
                     if(allMatch &&!"fsm:final-state".equals(evt.getName())) {
-                        evtQueue.add(Event.newBuilder().withName("fsm:final-state").build());
+                        evtQueue.add(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
                     }
                 }
 
-//                boolean isFSMState = currentState instanceof FSMState;
-//                boolean hasDoAction = currentState.getDoAction()!=null;
-//                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
-//                    evtQueue.addFirst(Event.newBuilder().withName("fsm:state-done").build());
-//                }
-
-                if("fsm:on-do-action-done".equals(evt.getName())) {
-
+                boolean isFSMState = currentState instanceof FSMState;
+                boolean hasDoAction = currentState.getDoAction()!=null;
+                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
+                    evtQueue.addFirst(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
                 }
+
 
                 // children consumed event
                 if (consumed) {
@@ -250,7 +250,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     if (!consumed) {
                         if (!removed) {
                             iter.remove();
-                            removed = true;
                         }
                         consumed = true;
 
@@ -270,7 +269,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         // discard event (not deferred)
                         if (!removed) {
                             iter.remove();
-                            removed = true;
                         }
                     }
                 }
@@ -458,7 +456,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             StateAction doAction = newState.getDoAction();
             if(doAction!=null) {
                 Runnable doActionDone = ()->{
-                    evtQueue.add(Event.newBuilder().withName("fsm:on-do-action-done").build());
+                    evtQueue.add(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
                 };
                 doActionFuture = new CompletableFuture<>();
                 doActionThread = new Thread(()->{
@@ -476,14 +474,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 doActionThread.start();
             } else {
                 // no do-action means, we are done after onEnter()
-                // evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").build());
-
-                boolean isFSMState = newState instanceof FSMState;
-                boolean hasDoAction = newState.getDoAction()!=null;
-
-                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
-                    evtQueue.add(Event.newBuilder().withName("fsm:state-done").build());
-                }
+                // evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done".withLocal(true).build());
+//
+//                boolean isFSMState = newState instanceof FSMState;
+//                boolean hasDoAction = newState.getDoAction()!=null;
+//
+//                if(!"fsm:state-done".equals(evt.getName()) && !hasDoAction && !isFSMState) {
+//                    evtQueue.add(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
+//                }
 
             }
         } catch(Exception ex) {
