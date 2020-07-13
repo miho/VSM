@@ -200,13 +200,6 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
-            // check whether hasRemainingEvents() has bugs
-
-            Thread.sleep(1000);
-
-            while (executor.hasRemainingEvents()) {
-                executor.processRemainingEvents();
-            }
 
             fsm.setRunning(false);
 
@@ -1406,12 +1399,6 @@ public class FSMTest {
             Executor executor = Executor.newInstance(fsm, MODE);
 
             fsm.setRunning(true);
-            
-            while (executor.hasRemainingEvents()) {
-                executor.processRemainingEvents();
-            }
-
-            Thread.sleep(100);
 
             while (executor.hasRemainingEvents()) {
                 executor.processRemainingEvents();
@@ -1542,8 +1529,6 @@ public class FSMTest {
         while(executor.hasRemainingEvents()) {
             executor.processRemainingEvents();
         }
-
-
         fsm.setRunning(false);
 
         var expectedEvtList = Arrays.asList(

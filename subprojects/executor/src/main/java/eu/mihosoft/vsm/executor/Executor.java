@@ -506,14 +506,18 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     if(enterAndExit &&  s instanceof FSMState) {
                         FSMState fsmState = (FSMState)  s;
                         for(FSM childFSM : fsmState.getFSMs()) {
-
-                            // create a new execute for child fsm if it doesn't exist yet
-                            if (childFSM.getExecutor() == null) {
-                                getCaller().getExecutor().newChild(childFSM);
+                            fsmLock.lock();
+                            try {
+                                // create a new execute for child fsm if it doesn't exist yet
+                                if (childFSM.getExecutor() == null) {
+                                    getCaller().getExecutor().newChild(childFSM);
+                                }
+                                Executor executor = (Executor) childFSM.getExecutor();
+                                executor.reset();
+                                childFSM.setRunning(true);
+                            } finally {
+                                fsmLock.unlock();
                             }
-                            Executor executor = (Executor) childFSM.getExecutor();
-                            executor.reset();
-                            childFSM.setRunning(true);
                         }
                     }
 
@@ -545,14 +549,19 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             FSMState fsmState = (FSMState) newState;
             for(FSM childFSM : fsmState.getFSMs()) {
 
-                // create a new execute for child fsm if it doesn't exist yet
-                if (childFSM.getExecutor() == null) {
-                    getCaller().getExecutor().newChild(childFSM);
-                }
+                fsmLock.lock();
+                try {
+                    // create a new execute for child fsm if it doesn't exist yet
+                    if (childFSM.getExecutor() == null) {
+                        getCaller().getExecutor().newChild(childFSM);
+                    }
 
-                Executor executor = (Executor) childFSM.getExecutor();
-                executor.reset();
-                childFSM.setRunning(true);
+                    Executor executor = (Executor) childFSM.getExecutor();
+                    executor.reset();
+                    childFSM.setRunning(true);
+                } finally {
+                    fsmLock.unlock();
+                }
             }
         }
 
@@ -596,51 +605,58 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
 
-        if(oldState!=null && !(stateExited.get(oldState)==null?false:stateExited.get(oldState))) {
+        fsmLock.lock();
 
-            try {
-                if (doActionThread != null && doActionFuture != null) {
-                    doActionThread.interrupt();
-                    doActionFuture.get(
-                            Math.min(
-                                    getCaller().getMaxCancellationTimeout().toMillis(),
-                                    oldState.getCancellationTimeout().toMillis()
-                            ),
-                            TimeUnit.MILLISECONDS);
+        try {
+
+            if (oldState != null && !(stateExited.get(oldState) == null ? false : stateExited.get(oldState))) {
+
+                try {
+                    if (doActionThread != null && doActionFuture != null) {
+                        doActionThread.interrupt();
+                        doActionFuture.get(
+                                Math.min(
+                                        getCaller().getMaxCancellationTimeout().toMillis(),
+                                        oldState.getCancellationTimeout().toMillis()
+                                ),
+                                TimeUnit.MILLISECONDS);
+                    }
+                } catch (Exception ex) {
+                    doActionThread = null;
+                    doActionFuture = null;
+                    handleExecutionError(evt, oldState, newState, ex);
+                } finally {
+                    doActionThread = null;
+                    doActionFuture = null;
                 }
-            } catch (Exception ex) {
-                doActionThread = null;
-                doActionFuture = null;
-                handleExecutionError(evt, oldState, newState, ex);
-            } finally {
-                doActionThread = null;
-                doActionFuture = null;
-            }
 
-            // exit children states
-            if(oldState instanceof FSMState) {
-                FSMState fsmState = (FSMState) oldState;
-                for(FSM childFSM : fsmState.getFSMs()) {
-                    Executor executor = (Executor) childFSM.getExecutor();
-                    executor.exitDoActionOfOldState(evt, childFSM.getCurrentState(), null);
+                // exit children states
+                if (oldState instanceof FSMState) {
+                    FSMState fsmState = (FSMState) oldState;
+                    for (FSM childFSM : fsmState.getFSMs()) {
+                        Executor executor = (Executor) childFSM.getExecutor();
+                        executor.exitDoActionOfOldState(evt, childFSM.getCurrentState(), null);
+                    }
                 }
-            }
 
-            try {
-                StateAction exitAction = oldState.getOnExitAction();
-                if(exitAction!=null) {
-                    exitAction.execute(oldState, evt);
+                try {
+                    StateAction exitAction = oldState.getOnExitAction();
+                    if (exitAction != null) {
+                        exitAction.execute(oldState, evt);
+                    }
+                } catch (Exception ex) {
+                    handleExecutionError(evt, oldState, newState, ex);
+                    return false;
+                } finally {
+                    stateExited.put(oldState, true);
                 }
-            } catch(Exception ex) {
-                handleExecutionError(evt, oldState, newState, ex);
-                return false;
-            } finally {
-                stateExited.put(oldState, true);
-            }
 
-        } // end if oldState != null
+            } // end if oldState != null
 
-        return true;
+            return true;
+        } finally {
+            fsmLock.unlock();
+        }
     }
 
     private boolean guardMatches(Transition consumer, Event evt) {
