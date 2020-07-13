@@ -204,11 +204,11 @@ public class FSMTest {
                     "enter state ca2",             //
                     "exit state ca2",              // <- myEvent 2
                     "enter state cb2",             //
+                    "exit state cb2",              // (fsm reached final state)
                     "exit state ca1",              // <- myEvent 1
                     "enter state cb1",             //
+                    "exit state cb1",              // (fsm reached final state)
                     "exit do-action-in-state-c",   // <- timeout (sleep)
-                    "exit state cb1",              // <- fsm:on-do-action-done
-                    "exit state cb2",              //
                     "exit state c",                //
                     "enter state a"                //
             );
@@ -254,12 +254,12 @@ public class FSMTest {
                     "enter state ca2",                 //
                     "exit state ca2",                  // <- myEvent 2
                     "enter state cb2",                 //
+                    "exit state cb2",                  // (fsm reached final state)
                     "exit state ca1",                  // <- myEvent 1
                     "enter state cb1",                 //
+                    "exit state cb1",                  // (fsm reached final state)
                     "interrupt do-action-in-state-c",  // <- myEvent 1
                     "exit do-action-in-state-c",       //
-                    "exit state cb1",                  //
-                    "exit state cb2",                  //
                     "exit state c",                    //
                     "enter state a"                    //
             );
@@ -303,11 +303,11 @@ public class FSMTest {
                     "enter state ca2",             //
                     "exit state ca2",              // <- myEvent 2
                     "enter state cb2",             //
+                    "exit state cb2",              // (fsm reached final state)
                     "exit state ca1",              // <- myEvent 1
                     "enter state cb1",             //
+                    "exit state cb1",              // (fsm reached final state)
                     "exit do-action-in-state-c",   // <- timeout (sleep)
-                    "exit state cb1",              // <- fsm:on-do-action-done
-                    "exit state cb2",              //
                     "exit state c",                //
                     "enter state a"                //
             );
@@ -351,12 +351,12 @@ public class FSMTest {
                     "enter state ca2",                 //
                     "exit state ca2",                  // <- myEvent 2
                     "enter state cb2",                 //
+                    "exit state cb2",                  // (fsm reached final state)
                     "exit state ca1",                  // <- myEvent 1
                     "enter state cb1",                 //
+                    "exit state cb1",                  // (fsm reached final state)
                     "interrupt do-action-in-state-c",  // <- myEvent 1
                     "exit do-action-in-state-c",       //
-                    "exit state cb1",                  //
-                    "exit state cb2",                  //
                     "exit state c",                    //
                     "enter state a"                    //
             );
@@ -1280,6 +1280,7 @@ public class FSMTest {
 
         FSM childFSM1 = childFSM.clone();
         childFSM1.setName("Child FSM 1");
+        childFSM1.setVerbose(true);
         childFSM1.getOwnedState().forEach(s->s.setName(s.getName() + "-fsm1"));
         FSM childFSM2 = childFSM.clone();
         childFSM2.setName("Child FSM 2");
@@ -1357,16 +1358,16 @@ public class FSMTest {
             t.getActions().add(transitioned);
         });
 
-        fsm.setVerbose(true);
+        // fsm.setVerbose(true);
 
         Executor executor = Executor.newInstance(fsm);
 
-
-
         fsm.setRunning(true);
-        while(executor.hasRemainingEvents()) {
+        int counter = 0;
+        while(executor.hasRemainingEvents()&&counter++<50) {
             executor.processRemainingEvents();
         }
+        System.out.println("!!! couting: " + counter);
         fsm.setRunning(false);
 
         var expectedEvtList = Arrays.asList(
@@ -1476,21 +1477,14 @@ public class FSMTest {
             t.getActions().add(transitioned);
         });
 
-        //fsm.setVerbose(true);
+        fsm.setVerbose(true);
 
         Executor executor = Executor.newInstance(fsm);
 
-
         fsm.setRunning(true);
-//        while(executor.hasRemainingEvents()) {
-//            executor.processRemainingEvents();
-//        }
-        executor.processRemainingEvents();
-        executor.processRemainingEvents();
-        executor.processRemainingEvents();
-        executor.processRemainingEvents();
-        executor.processRemainingEvents();
-
+        while(executor.hasRemainingEvents()) {
+            executor.processRemainingEvents();
+        }
 
 
         fsm.setRunning(false);
