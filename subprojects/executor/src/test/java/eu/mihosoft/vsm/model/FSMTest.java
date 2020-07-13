@@ -22,8 +22,8 @@ public class FSMTest {
     private static final eu.mihosoft.vsm.model.Executor.ExecutionMode MODE
             = eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS;
 
-    private static final int NUM_ITERATIONS_LARGE_TESTS = 100;
-    private static final int NUM_ITERATIONS_SMALL_TESTS = 10000;
+    private static final int NUM_ITERATIONS_LARGE_TESTS = 3;
+    private static final int NUM_ITERATIONS_SMALL_TESTS = 10;
 
     @Test public void testATMFSM() throws InterruptedException {
 
