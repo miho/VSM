@@ -163,14 +163,34 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         boolean consumed = false;
         State prevState = getCaller().getCurrentState();
 
+        if(prevState instanceof FSMState) {
+            // if we are in a state with nested fsm we try to consume the event in the nested machine
+            // before we try to consume it on the current level.
+            if (prevState instanceof FSMState) {
+                FSMState fsmState = (FSMState) prevState;
+                for (FSM childFSM : fsmState.getFSMs()) {
+                    if (childFSM != null) {
+                        childFSM.getExecutor().processRemainingEvents();
+                    }
+                } // end for each child fsm
 
-        Iterator<Event> iter = evtQueue.iterator();
+                boolean allMatch = fsmState.getFSMs().stream()
+                        .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
-//        System.out.println("HERE 3: "+iter.hasNext());
+                if(allMatch && !firedFinalState) {
+                    evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                    firedFinalState = true;
+                }
+            } else {
+                if(!firedFinalState) {
+                    evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                    firedFinalState = true;
+                }
+            }
+        }
 
-        for (; iter.hasNext() && getCaller().isRunning(); ) {
 
-//            System.out.println("!!! HERE " + level(getCaller()));
+        for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
             try {
 
@@ -206,7 +226,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                                 childFSM.getExecutor().trigger(evt);
                             }
 
-                            // process event of not local and potential internal events
+//                            // process event of not local and potential internal events
                             childFSM.getExecutor().processRemainingEvents();
 
                             // if we consumed it then remove it
@@ -305,7 +325,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         log("  -> deferring: " + evt.getName());
                         evt.setDeferred(true);
                     } else {
-                        log("  -> discarding unconsumed event: " + evt.getName());
+                        log("  -> discarding unconsumed event: " + evt.getName() + " in FSM " + level(getCaller()));
                         // discard event (not deferred)
                         if (!removed) {
                             iter.remove();
