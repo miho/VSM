@@ -200,6 +200,12 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
+            // check whether hasRemainingEvents() has bugs
+
+            while (executor.hasRemainingEvents()) {
+                executor.processRemainingEvents();
+            }
+
             fsm.setRunning(false);
 
             var expectedEvtList = Arrays.asList(
