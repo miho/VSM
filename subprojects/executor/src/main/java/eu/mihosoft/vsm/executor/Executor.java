@@ -125,8 +125,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
 
     private void modifyFSMSafe(Consumer<FSM> fsmTask) {
+        fsmLock.lock();
         try {
-            fsmLock.lock();
             fsmTask.accept(getCaller());
         } finally {
             fsmLock.unlock();
@@ -140,8 +140,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
         // everything modified concurrently with start(), reset(), stop() etc. must be inside
         // locked code block
+        fsmLock.lock();
         try {
-            fsmLock.lock();
             if (!getCaller().isRunning()) return false;
             if (getCaller().getOwnedState().isEmpty()) return false;
 
@@ -189,10 +189,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
+            fsmLock.lock();
             try {
-
-                fsmLock.lock();
-
                 Event evt = iter.next();
                 boolean removed = false;
                 State currentState = getCaller().getCurrentState();
@@ -278,8 +276,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     // if we consume the current event, pop the corresponding entry in the queue
                     if (!consumed) {
 
+                        eventLock.lock();
                         try {
-                            eventLock.lock();
                             if (!removed) {
                                 iter.remove();
                             }
@@ -298,8 +296,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 } else if (!consumed) {
                     if (guardMatches && defers(getCaller().getCurrentState(), evt)) {
                         log("  -> deferring: " + evt.getName());
+                        eventLock.lock();
                         try {
-                            eventLock.lock();
                             evt.setDeferred(true);
                         } finally {
                             eventLock.unlock();
@@ -307,8 +305,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     } else {
                         log("  -> discarding unconsumed event: " + evt.getName() + " in FSM " + level(getCaller()));
                         // discard event (not deferred)
+                        eventLock.lock();
                         try {
-                            eventLock.lock();
                             if (!removed) {
                                 iter.remove();
                             }
@@ -345,19 +343,16 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     // process event of non local and potential internal events
                     childFSM.getExecutor().processRemainingEvents();
 
+                    eventLock.lock();
                     try {
-                        eventLock.lock();
-
                         // if we consumed it then remove it
                         if (evt != null && !removedParam.get() && evt.isConsumed()) {
                             iter.remove();
                             removedParam.set(true);
                         }
-
                     } finally {
                         eventLock.unlock();
                     }
-
             };
             if(mode == ExecutionMode.PARALLEL_REGIONS) {
                 Thread thread = new Thread(r);
@@ -606,7 +601,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
 
         fsmLock.lock();
-
         try {
 
             if (oldState != null && !(stateExited.get(oldState) == null ? false : stateExited.get(oldState))) {
@@ -745,8 +739,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     @Override
     public boolean hasRemainingEvents() {
 
+        fsmLock.lock();
         try {
-            fsmLock.lock();
 
             if (!getCaller().isRunning()) return false;
 
