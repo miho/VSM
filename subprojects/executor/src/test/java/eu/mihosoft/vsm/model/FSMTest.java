@@ -1327,7 +1327,7 @@ public class FSMTest {
                     .withDoAction((s, e) -> {
                         try {
                             System.out.println("!!! cfsm: enter");
-                            Thread.sleep(1000);
+                            Thread.sleep(1500);
                             System.out.println("!!! cfsm: exit");
                         } catch (InterruptedException interruptedException) {
                             System.out.println("!!! cfsm: interrupted");
@@ -1344,7 +1344,7 @@ public class FSMTest {
                     .withDoAction((s, e) -> {
                         try {
                             System.out.println("!!! s2: enter");
-                            Thread.sleep(100);
+                            Thread.sleep(150);
                             System.out.println("!!! s2: exit");
                         } catch (InterruptedException interruptedException) {
                             System.out.println("!!! s2: interrupt");
@@ -1437,7 +1437,11 @@ public class FSMTest {
                     "exit s3"            // <- fsm stopped (no event generated)
             );
 
+            System.out.println("--------------");
+
             System.out.println(String.join("\n", actualEvtList));
+
+            System.out.println("-------------- END testChildrenDoneEvent(), iteration: " + i);
 
             // order of child fsms implementation specific
             // (we only test size (number of state transitions + whether do-actions have been interrupted resp. properly executed) )
