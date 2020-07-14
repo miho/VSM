@@ -16,10 +16,17 @@ buildscript {
 plugins {
     id 'application'
     id 'idea'
+
+    id 'com.github.hierynomus.license' version '0.14.0'
+    id 'maven-publish'
+    id 'net.nemerosa.versioning' version '2.7.1'
+    id 'com.jfrog.bintray' version '1.8.4'
+    id 'com.github.ben-manes.versions' version '0.13.0'
 }
 
 // load plugins
 apply plugin: 'eu.mihosoft.vmf'
+apply from: 'gradle/publishing.gradle'
 
 repositories {
     mavenCentral()

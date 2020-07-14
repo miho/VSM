@@ -1,0 +1,25 @@
+// -----------------------------------------------------------------------------
+// publishing information
+// -----------------------------------------------------------------------------
+ext.publishing.artifactId =  'model'
+ext.publishing.groupId    =  'eu.mihosoft.vsm'
+ext.publishing.versionId  =  rootProject.commonProps.get("publication.version")
+
+ext.publishing.developerName         = 'Michael Hoffer'
+ext.publishing.developerAlias        = 'miho'
+ext.publishing.developerEmail        = 'info@michaelhoffer.de'
+ext.publishing.inceptionYear         = '2019'
+
+ext.publishing.bintray.repo          = 'VSM'
+ext.publishing.bintray.userOrg       = 'miho'
+ext.publishing.bintray.name          = project.name
+
+ext.publishing.desc                  = 'State Machine Model based on VMF (VRL Modeling Framework).'
+ext.publishing.license               = 'Apache-2.0'
+ext.publishing.licenseUrl            = 'https://github.com/miho/VMS/blob/master/LICENSE'
+ext.publishing.labels                = ['state machines','state charts','hsm', 'vmf', 'modeling', 'data model', 'vrl', 'modeling framework']
+ext.publishing.websiteUrl            = 'https://github.com/miho/VSM'
+ext.publishing.issueTrackerUrl       = 'https://github.com/miho/VSM/issues'
+ext.publishing.vcsUrl                = 'https://github.com/miho/VSM.git'
+
+ext.publishing.pomName               =  ext.publishing.artifactId
