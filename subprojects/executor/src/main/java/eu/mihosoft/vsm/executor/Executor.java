@@ -342,7 +342,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                                 AtomicBoolean consumedParam,
                                 AtomicBoolean removedParam) {
         FSMState fsmState = currentState;
-        var threads = new ArrayList<Thread>();
+        var threads = new ArrayList<Future<Void>>();
 
         for (FSM childFSM : fsmState.getFSMs()) {
             Runnable r = () -> {
@@ -368,9 +368,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     }
             };
             if(mode == ExecutionMode.PARALLEL_REGIONS) {
-                Thread thread = new Thread(r);
-                thread.start();
-                threads.add(thread);
+                threads.add(submit(r));
             } else if(mode == ExecutionMode.SERIAL_REGIONS) {
                 r.run();
             } else {
@@ -380,8 +378,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
         threads.forEach(t-> {
             try {
-                t.join();
-            } catch (InterruptedException e) {
+                t.get();
+            } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
         });
