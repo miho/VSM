@@ -24,6 +24,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     private final ExecutionMode mode;
 
+    private final ScheduledExecutorService executorService;
+
     private static Optional<Executor> getLCA(Executor a, Executor b) {
         int start = Math.min(a.pathToRoot.size(), b.pathToRoot.size());
 
@@ -36,7 +38,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return Optional.empty();
     }
 
-    private Executor(FSM fsm, ExecutionMode mode, int depth, Executor parent) {
+    private Executor(FSM fsm, ExecutionMode mode, int depth, Executor parent,ScheduledExecutorService executorService) {
         this.fsm = fsm;
         this.mode = mode;
         this.fsm.setExecutor(this);
@@ -45,11 +47,22 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             pathToRoot.addAll(parent.pathToRoot);
         }
         pathToRoot.add(this);
+
+        this.executorService = executorService==null?Executors.newScheduledThreadPool(10):executorService;
+    }
+
+    public ScheduledExecutorService getExecutorService() {
+        return executorService;
+    }
+
+    public static Executor newInstance(FSM fsm, ExecutionMode mode, ScheduledExecutorService executorService) {
+        return new Executor(fsm, mode, 0, null, executorService);
     }
 
     public static Executor newInstance(FSM fsm, ExecutionMode mode) {
-        return new Executor(fsm, mode, 0, null);
+        return newInstance(fsm, mode, null);
     }
+
 
     private int getDepth() {
         return this.depth;
@@ -688,6 +701,10 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
     }
 
+    private Future<Void> submit(Runnable callable) {
+        return executorService.submit(callable, (Void)null);
+    }
+
     public Thread startAsync() {
 
         getCaller().getExecutor().reset();
@@ -733,7 +750,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     @Override
     public eu.mihosoft.vsm.model.Executor newChild(FSM fsm) {
-        return new Executor(fsm,this.mode,this.depth+1, this);
+        return new Executor(fsm,this.mode,this.depth+1, this, this.executorService);
     }
 
     @Override
