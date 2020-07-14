@@ -1094,7 +1094,7 @@ public class FSMTest {
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, true);
                 Executor executor = Executor.newInstance(fsm, MODE);
 
-                Thread thread = executor.startAsync();
+                executor.startAsync();
 
                 System.out.println("----> triggering event 1");
                 executor.trigger("event1");
@@ -1131,7 +1131,7 @@ public class FSMTest {
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, false);
                 Executor executor = Executor.newInstance(fsm, MODE);
 
-                Thread thread = executor.startAsync();
+                executor.startAsync();
 
                 System.out.println("----> triggering event 1");
                 executor.trigger("event1");

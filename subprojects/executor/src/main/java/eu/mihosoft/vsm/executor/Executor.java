@@ -705,17 +705,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return executorService.submit(callable, (Void)null);
     }
 
-    public Thread startAsync() {
+    public Future<Void> startAsync() {
 
         getCaller().getExecutor().reset();
         getCaller().setRunning(true);
 
-        Thread t = new Thread(()->{
-            start_int();
-        });
-        t.start();
-
-        return t;
+        return submit(()->start_int());
     }
 
     @Override

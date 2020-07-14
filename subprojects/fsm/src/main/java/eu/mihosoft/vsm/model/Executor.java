@@ -1,5 +1,6 @@
 package eu.mihosoft.vsm.model;
 
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -53,7 +54,7 @@ public interface Executor {
      * execution. This method does return while the state machine is executed
      * @return the thread performing the execution
      */
-    Thread startAsync();
+    Future<Void> startAsync();
 
     /**
      * Returns the lock object that locks the FSM instance controlled by this executor.
