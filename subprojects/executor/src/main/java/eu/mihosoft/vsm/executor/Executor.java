@@ -209,6 +209,14 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     log("  -> in state: " + level(getCaller()) + ":" + currentState.getName());
                 }
 
+                // handle errors
+                if("fsm:error".equals(evt.getName())) {
+                    handleExecutionError((Event)evt.getArgs().get(0),
+                            (State) evt.getArgs().get(1),
+                            (State) evt.getArgs().get(2),
+                            (Exception) evt.getArgs().get(3));
+                }
+
                 // if we are in a state with nested fsm we try to consume the event in the nested machine
                 // before we try to consume it on the current level.
                 AtomicBoolean consumedParam = new AtomicBoolean(consumed);
@@ -397,7 +405,20 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             .build(),
                     oldState, getCaller().getErrorState(), null);
         } else {
-            throw new RuntimeException("Action cannot be executed", ex);
+
+            // try to propagate to parent fsm because no error state found
+
+            boolean parentPresent = getCaller().getParentState()!=null;
+
+            if(!parentPresent) {
+                // no parent present, throwing exception (not handled by the fsm)
+                throw new RuntimeException("Action cannot be executed", ex);
+            }
+
+            Executor parentExecutor = (Executor) getCaller().getParentState().getOwningFSM().getExecutor();
+            parentExecutor.evtQueue.addFirst(Event.newBuilder().withName("fsm:error").
+                    withArgs(evt, oldState, newState, ex).build());
+
         }
     }
 
