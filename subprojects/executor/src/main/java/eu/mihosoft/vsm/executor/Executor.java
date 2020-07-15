@@ -215,6 +215,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             (State) evt.getArgs().get(1),
                             (State) evt.getArgs().get(2),
                             (Exception) evt.getArgs().get(3));
+
+                    if (getCaller().getFinalState().contains(getCaller().getCurrentState())) {
+                        log("  -> final state reached. stopping.");
+                        exitDoActionOfOldState(evt, getCaller().getCurrentState(), null);
+                        getCaller().setRunning(false);
+                    }
                 }
 
                 // if we are in a state with nested fsm we try to consume the event in the nested machine
