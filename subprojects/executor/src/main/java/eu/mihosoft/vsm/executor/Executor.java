@@ -14,6 +14,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
     private Thread doActionThread;
     private CompletableFuture<Void> doActionFuture;
+    private Thread executionThread;
     private Map<State, Boolean> stateExited = new HashMap<>();
     private final int depth;
     private final FSM fsm;
@@ -75,7 +76,21 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
     }
 
     public void trigger(Event event) {
+        if(executionThread!=null) {
+            synchronized(executionThread) {
+                executionThread.notify();
+            }
+        }
         evtQueue.add(event);
+    }
+
+    private void triggerFirst(Event event) {
+        if(executionThread!=null) {
+            synchronized(executionThread) {
+                executionThread.notify();
+            }
+        }
+        evtQueue.addFirst(event);
     }
 
     public boolean process(String evt, EventConsumedAction onConsumed, Object... args) {
@@ -180,7 +195,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
                 if(allMatch && !firedFinalState) {
-                    evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                    triggerFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
                     firedFinalState = true;
                 }
             }
@@ -233,7 +248,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     consumed = consumedParam.get();
                 } else {
                     if(!firedFinalState) {
-                        evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                        triggerFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
                         firedFinalState = true;
                     }
                 }
@@ -247,7 +262,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 }
 
                 if(!"fsm:state-done".equals(evt.getName()) && firedFinalState && firedDoActionDone) {
-                    evtQueue.add(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
+                    trigger(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
                 }
 
                 // children consumed event
@@ -397,7 +412,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
         if(allMatch && !firedFinalState) {
-            evtQueue.addFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+            triggerFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
             firedFinalState = true;
         }
     }
@@ -422,7 +437,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             }
 
             Executor parentExecutor = (Executor) getCaller().getParentState().getOwningFSM().getExecutor();
-            parentExecutor.evtQueue.addFirst(Event.newBuilder().withName("fsm:error").
+            parentExecutor.triggerFirst(Event.newBuilder().withName("fsm:error").
                     withArgs(evt, oldState, newState, ex).build());
 
         }
@@ -598,7 +613,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             StateAction doAction = newState.getDoAction();
             if(doAction!=null) {
                 Runnable doActionDone = ()->{
-                    evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
+                    triggerFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
                 };
                 doActionFuture = new CompletableFuture<>();
                 doActionThread = new Thread(()->{
@@ -616,7 +631,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 doActionThread.start();
             } else {
                 // no do-action means, we are done after onEnter()
-                evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
+                triggerFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
             }
         } catch(Exception ex) {
             handleExecutionError(evt, oldState, newState, ex);
@@ -704,10 +719,44 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         start_int();
     }
 
+    private long timestamp;
+    private long duration1 = 1000;
+    private long duration2 =  100;
+    private long duration3 =   10;
+    private long waitTime  =   10;
     private void start_int() {
         while(getCaller().isRunning()&&!Thread.currentThread().isInterrupted()) {
             try {
-                getCaller().getExecutor().processRemainingEvents();
+                long currentTime = System.currentTimeMillis();
+                boolean eventsProcessed = getCaller().getExecutor().processRemainingEvents();
+
+                if(Thread.currentThread() == executionThread) {
+                    if(eventsProcessed||timestamp==0) {
+                        timestamp = currentTime;
+                    }
+
+                    long timeDiff = currentTime - timestamp;
+                    if (timeDiff > duration1) {
+                        waitTime = 10;
+                    } else if (timeDiff > duration2) {
+                        waitTime = 10;
+                    } else if (timeDiff > duration3) {
+                        waitTime = 1;
+                    } else {
+                        // full speed
+                        waitTime = 0;
+                    }
+
+                    try {
+                        synchronized (executionThread) {
+                            if(waitTime>0) {
+                                executionThread.wait(waitTime);
+                            }
+                        }
+                    } catch (InterruptedException iEx) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
             } catch (Exception ex) {
                 Thread.currentThread().interrupt();
                 throw ex;
@@ -720,12 +769,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         getCaller().getExecutor().reset();
         getCaller().setRunning(true);
 
-        Thread t = new Thread(()->{
+        this.executionThread = new Thread(()->{
             start_int();
         });
-        t.start();
+        this.executionThread.start();
 
-        return t;
+        return executionThread;
     }
 
     @Override
