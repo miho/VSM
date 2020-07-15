@@ -737,7 +737,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
                     long timeDiff = currentTime - timestamp;
                     if (timeDiff > duration1) {
-                        waitTime = 10;
+                        waitTime = 100;
                     } else if (timeDiff > duration2) {
                         waitTime = 10;
                     } else if (timeDiff > duration3) {
