@@ -6,6 +6,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 import eu.mihosoft.vsm.executor.Executor;
+import eu.mihosoft.vsm.model.Executor.ExecutionMode;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,14 +14,15 @@ import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class FSMTest {
 
-    private static final eu.mihosoft.vsm.model.Executor.ExecutionMode MODE
-            = eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS;
+    private static final ExecutionMode MODE
+            = ExecutionMode.PARALLEL_REGIONS;
 
     private static final int NUM_ITERATIONS_LARGE_TESTS = 3;
     private static final int NUM_ITERATIONS_SMALL_TESTS = 10;
@@ -200,15 +202,14 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
-            if(MODE == eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS) {
+            if(MODE == ExecutionMode.PARALLEL_REGIONS) {
 
-                Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
+                Thread.sleep(2000); // TODO (hasRemainingEvents() might still be buggy)
 
                 while (executor.hasRemainingEvents()) {
                     executor.processRemainingEvents();
                 }
             }
-
 
             fsm.setRunning(false);
 
@@ -242,7 +243,7 @@ public class FSMTest {
     }
 
     @Test
-    public void nestedOrthogonalWithDoActionInterruptedProcessingTest() {
+    public void nestedOrthogonalWithDoActionInterruptedProcessingTest() throws InterruptedException {
 
         for(int i = 0; i < NUM_ITERATIONS_LARGE_TESTS; i++) {
 
@@ -261,6 +262,15 @@ public class FSMTest {
 
             while (executor.hasRemainingEvents()) {
                 executor.processRemainingEvents();
+            }
+
+            if(MODE == ExecutionMode.PARALLEL_REGIONS) {
+
+                Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
+
+                while (executor.hasRemainingEvents()) {
+                    executor.processRemainingEvents();
+                }
             }
 
             fsm.setRunning(false);
@@ -523,6 +533,11 @@ public class FSMTest {
                                 .build()
                 )
                 .build();
+
+        fsm.vmf().content().stream(State.class).forEach(s-> {
+            s.getDeferredEvents().add("myEvent1");
+            s.getDeferredEvents().add("myEvent2");
+        });
 
         return fsm;
     }
@@ -1413,9 +1428,9 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
-            if(MODE == eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS) {
+            if(MODE == ExecutionMode.PARALLEL_REGIONS) {
 
-                Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
+                Thread.sleep(250); // TODO (hasRemainingEvents() might still be buggy)
 
                 while (executor.hasRemainingEvents()) {
                     executor.processRemainingEvents();
@@ -1565,6 +1580,163 @@ public class FSMTest {
         System.out.println(String.join("\n", actualEvtList));
 
         Assert.assertEquals(expectedEvtList, actualEvtList);
+
+    }
+
+    @Test
+    public void errorStateTest1() {
+        State s1 = State.newBuilder()
+                .withName("s1")
+                .build();
+        State s2 = State.newBuilder()
+                .withName("s1")
+                .withOnEntryAction((s, e) -> {
+                    throw new RuntimeException("Exception in s2");
+                })
+                .build();
+
+        Transition s1s2 = Transition.newBuilder()
+                .withTrigger("myEvent1")
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
+
+        State error = State.newBuilder()
+                .withName("ERROR")
+                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withName("FSM")
+                .withInitialState(s1)
+                .withOwnedState(s1,s2, error)
+                .withErrorState(error)
+                .withTransitions(s1s2)
+                .build();
+
+        Executor executor = Executor.newInstance(fsm, ExecutionMode.SERIAL_REGIONS);
+
+        fsm.setRunning(true);
+        executor.process("myEvent1");
+        fsm.setRunning(false);
+
+
+        Assert.assertEquals(fsm.getErrorState(), fsm.getCurrentState());
+
+    }
+
+    @Test
+    public void errorStateNestedFSMTest2() {
+        State s1 = State.newBuilder()
+                .withName("s1")
+                .build();
+        State s2 = State.newBuilder()
+                .withName("s1")
+                .withOnEntryAction((s, e) -> {
+                    throw new RuntimeException("Exception in s2");
+                })
+                .build();
+
+        Transition s1s2 = Transition.newBuilder()
+                .withTrigger("myEvent1")
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
+
+
+        FSM fsmChild = FSM.newBuilder()
+                .withName("FSM Child")
+                .withInitialState(s1)
+                .withOwnedState(s1,s2)
+                .withTransitions(s1s2)
+                .build();
+
+        State error = State.newBuilder()
+                .withName("ERROR")
+                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .build();
+
+        FSMState child = FSMState.newBuilder()
+                .withName("Region 1")
+                .withFSMs(fsmChild)
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withName("FSM")
+                .withInitialState(child)
+                .withOwnedState(child, error)
+                .withErrorState(error)
+                .build();
+
+        Executor executor = Executor.newInstance(fsm, ExecutionMode.SERIAL_REGIONS);
+
+        fsm.setRunning(true);
+        executor.process("myEvent1");
+        fsm.setRunning(false);
+
+
+        Assert.assertEquals(fsm.getErrorState(), fsm.getCurrentState());
+
+    }
+
+    @Test
+    public void errorStateNestedFSMTest3() throws InterruptedException, ExecutionException {
+
+        // test whether errors are processed in parent fsms if no error state has been registered
+        // in the nested fsm
+
+        State s1 = State.newBuilder()
+                .withName("s1")
+                .build();
+        State s2 = State.newBuilder()
+                .withName("s1")
+                .withOnEntryAction((s, e) -> {
+                    throw new RuntimeException("Exception in s2");
+                })
+                .build();
+
+        Transition s1s2 = Transition.newBuilder()
+                .withTrigger("myEvent1")
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
+
+
+        FSM fsmChild = FSM.newBuilder()
+                .withName("FSM Child")
+                .withInitialState(s1)
+                .withOwnedState(s1,s2)
+                .withTransitions(s1s2)
+                .build();
+
+        State error = State.newBuilder()
+                .withName("ERROR")
+                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .build();
+
+        FSMState child = FSMState.newBuilder()
+                .withName("Region 1")
+                .withFSMs(fsmChild)
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withName("FSM")
+                .withVerbose(true)
+                .withInitialState(child)
+                .withOwnedState(child)
+                .withOwnedState(child, error)
+                .withErrorState(error)
+                .build();
+
+        Executor executor = Executor.newInstance(fsm, ExecutionMode.SERIAL_REGIONS);
+
+        Future<Void> future = executor.startAsync();
+        Thread.sleep(100);
+        executor.trigger("myEvent1");
+        Thread.sleep(100);
+
+        Assert.assertEquals(fsm.getErrorState(), fsm.getCurrentState());
+        executor.stop();
 
     }
 }

@@ -2,6 +2,7 @@ package eu.mihosoft.vsm.executor;
 
 import eu.mihosoft.vsm.model.*;
 
+import java.io.PrintStream;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -13,7 +14,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
     private Thread doActionThread;
-    private CompletableFuture<Void> doActionFuture;
+    private Future<Void> doActionFuture;
     private Map<State, Boolean> stateExited = new HashMap<>();
     private final int depth;
     private final FSM fsm;
@@ -346,6 +347,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
         for (FSM childFSM : fsmState.getFSMs()) {
             Runnable r = () -> {
+                try {
 
                     if (evt != null && !evt.isLocal()) {
                         // trigger in child fsm if not local to our fsm
@@ -366,11 +368,18 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     } finally {
                         eventLock.unlock();
                     }
+                } catch (Exception ex) {
+                    handleExecutionError(evt, currentState, currentState, ex);
+                }
             };
             if(mode == ExecutionMode.PARALLEL_REGIONS) {
                 threads.add(submit(r));
             } else if(mode == ExecutionMode.SERIAL_REGIONS) {
-                r.run();
+                try {
+                    r.run();
+                } catch (Exception ex) {
+                    handleExecutionError(evt, currentState, currentState, ex);
+                }
             } else {
                 throw new RuntimeException("Unknown execution mode: " + mode);
             }
@@ -408,7 +417,12 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                             .build(),
                     oldState, getCaller().getErrorState(), null);
         } else {
-            throw new RuntimeException("Action cannot be executed", ex);
+            if(getCaller().getParentState()!=null) {
+                ((Executor)getCaller().getParentState().getOwningFSM().getExecutor())
+                        .handleExecutionError(evt,oldState,newState,ex);
+            } else {
+                throw new FSMException("Action cannot be executed", oldState, evt, ex);
+            }
         }
     }
 
@@ -450,7 +464,6 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 State dstParent;
                 if(i<pathToRootDst.size()) {
                     dstParent = pathToRootDst.get(i);
-
                 } else {
                     dstParent = null;
                 }
@@ -477,7 +490,9 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
             // exit do-action and state ancestors until we reach direct children of LAC(oldState, newState)
             for(State s : exitOldStateList) {
-                if (!exitDoActionOfOldState(evt, s, newState)) return;
+                if (!exitDoActionOfOldState(evt, s, newState)) {
+                    return;
+                };
             }
         }
 
@@ -584,20 +599,18 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 Runnable doActionDone = ()->{
                     evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
                 };
-                doActionFuture = new CompletableFuture<>();
-                doActionThread = new Thread(()->{
+                doActionFuture = submit(()->{
                     try {
                         doAction.execute(newState, evt);
                     } catch(Exception ex) {
                         handleExecutionError(evt, oldState, newState, ex);
                         return;
                     }
-                    doActionFuture.complete(null);
                     if(!Thread.currentThread().isInterrupted()) {
                         doActionDone.run();
                     }
                 });
-                doActionThread.start();
+
             } else {
                 // no do-action means, we are done after onEnter()
                 evtQueue.addFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
@@ -617,21 +630,23 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
             if (oldState != null && !(stateExited.get(oldState) == null ? false : stateExited.get(oldState))) {
 
                 try {
-                    if (doActionThread != null && doActionFuture != null) {
-                        doActionThread.interrupt();
-                        doActionFuture.get(
-                                Math.min(
-                                        getCaller().getMaxCancellationTimeout().toMillis(),
-                                        oldState.getCancellationTimeout().toMillis()
-                                ),
-                                TimeUnit.MILLISECONDS);
+                    if (doActionFuture != null) {
+                        doActionFuture.cancel(true);
+                        try {
+                            doActionFuture.get(
+                                    Math.min(
+                                            getCaller().getMaxCancellationTimeout().toMillis(),
+                                            oldState.getCancellationTimeout().toMillis()
+                                    ),
+                                    TimeUnit.MILLISECONDS);
+                        } catch(CancellationException ex) {
+                            // cancelled, that's fine.
+                        }
                     }
                 } catch (Exception ex) {
-                    doActionThread = null;
                     doActionFuture = null;
                     handleExecutionError(evt, oldState, newState, ex);
                 } finally {
-                    doActionThread = null;
                     doActionFuture = null;
                 }
 
@@ -640,7 +655,9 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     FSMState fsmState = (FSMState) oldState;
                     for (FSM childFSM : fsmState.getFSMs()) {
                         Executor executor = (Executor) childFSM.getExecutor();
+                        executor.fsmLock.lock();
                         executor.exitDoActionOfOldState(evt, childFSM.getCurrentState(), null);
+                        executor.fsmLock.unlock();
                     }
                 }
 
@@ -780,5 +797,27 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         } finally {
             fsmLock.unlock();
         }
+    }
+
+    public static class FSMException extends RuntimeException {
+        private final State state;
+        private final Event event;
+        public FSMException(String msg, State state, Event event, Exception cause) {
+            super("[ state: "
+                    + (state==null?"<null>":(state.getName()==null?"<cls: " + state.getClass():state.getName()))
+                    + ", evt: " + (event==null?"<null>":(event.getName()==null?"<cls: " + event.getClass():event.getName()))
+                    + "]: msg: " + msg, cause);
+            this.state = state;
+            this.event = event;
+        }
+
+        public State getState() {
+            return state;
+        }
+
+        public Event getEvent() {
+            return event;
+        }
+
     }
 }
