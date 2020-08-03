@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 
 public class FSMTest {
 
-    private static final eu.mihosoft.vsm.model.Executor.ExecutionMode MODE
-            = eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS;
+    private static final eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode MODE
+            = eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
     private static final int NUM_ITERATIONS_LARGE_TESTS = 3;
     private static final int NUM_ITERATIONS_SMALL_TESTS = 10;
@@ -201,7 +201,7 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
-            if(MODE == eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS) {
+            if(MODE == eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS) {
 
                 Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
 
@@ -1414,7 +1414,7 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
-            if(MODE == eu.mihosoft.vsm.model.Executor.ExecutionMode.PARALLEL_REGIONS) {
+            if(MODE == eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS) {
 
                 Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
 
@@ -1600,7 +1600,7 @@ public class FSMTest {
                 .withTransitions(s1s2)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.Executor.ExecutionMode.SERIAL_REGIONS);
+        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.SERIAL_REGIONS);
 
         fsm.setRunning(true);
         executor.process("myEvent1");
@@ -1654,7 +1654,7 @@ public class FSMTest {
                 .withErrorState(error)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.Executor.ExecutionMode.SERIAL_REGIONS);
+        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.SERIAL_REGIONS);
 
         fsm.setRunning(true);
         executor.process("myEvent1");
@@ -1715,7 +1715,7 @@ public class FSMTest {
                 .withErrorState(error)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.Executor.ExecutionMode.SERIAL_REGIONS);
+        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.SERIAL_REGIONS);
 
         executor.startAsync();
         Thread.sleep(100);

@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class Executor implements eu.mihosoft.vsm.model.Executor {
+public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
     private Thread doActionThread;
@@ -24,7 +24,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     private final List<Executor> pathToRoot = new ArrayList<>();
 
-    private final ExecutionMode mode;
+    private final AsyncExecutor.ExecutionMode mode;
 
     private static Optional<Executor> getLCA(Executor a, Executor b) {
         int start = Math.min(a.pathToRoot.size(), b.pathToRoot.size());
@@ -59,6 +59,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
 
     private FSM getCaller(){return this.fsm;}
 
+    @Override
     public void trigger(String evt, EventConsumedAction onConsumed, Object... args) {
 
         Event event = Event.newBuilder().withName(evt).withArgs(args)
@@ -68,6 +69,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         trigger(event);
     }
 
+    @Override
     public void trigger(String evt, Object... args) {
 
         Event event = Event.newBuilder().withName(evt).withArgs(args)
@@ -76,6 +78,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         trigger(event);
     }
 
+    @Override
     public void trigger(Event event) {
         if(executionThread!=null) {
             synchronized(executionThread) {
@@ -85,7 +88,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         evtQueue.add(event);
     }
 
-    private void triggerFirst(Event event) {
+    @Override
+    public void triggerFirst(Event event) {
         if(executionThread!=null) {
             synchronized(executionThread) {
                 executionThread.notify();
@@ -103,6 +107,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         }
     }
 
+    @Override
     public boolean process(String evt, Object... args) {
 
 //        if() {
@@ -439,7 +444,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 throw new RuntimeException("Action cannot be executed", ex);
             }
 
-            Executor parentExecutor = (Executor) getCaller().getParentState().getOwningFSM().getExecutor();
+            eu.mihosoft.vsm.model.Executor parentExecutor = getCaller().getParentState().getOwningFSM().getExecutor();
             parentExecutor.triggerFirst(Event.newBuilder().withName("fsm:error").
                     withArgs(evt, oldState, newState, ex).build());
 
@@ -552,7 +557,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                                 if (childFSM.getExecutor() == null) {
                                     getCaller().getExecutor().newChild(childFSM);
                                 }
-                                Executor executor = (Executor) childFSM.getExecutor();
+                                eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
                                 executor.reset();
                                 childFSM.setRunning(true);
                             } finally {
@@ -596,7 +601,7 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                         getCaller().getExecutor().newChild(childFSM);
                     }
 
-                    Executor executor = (Executor) childFSM.getExecutor();
+                    eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
                     executor.reset();
                     childFSM.setRunning(true);
                 } finally {
@@ -643,6 +648,11 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return true;
     }
 
+    @Override
+    public void exitDoActionOfState(Event evt, State state) {
+        this.exitDoActionOfOldState(evt, state, null);
+    }
+
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
 
         fsmLock.lock();
@@ -673,8 +683,8 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                 if (oldState instanceof FSMState) {
                     FSMState fsmState = (FSMState) oldState;
                     for (FSM childFSM : fsmState.getFSMs()) {
-                        Executor executor = (Executor) childFSM.getExecutor();
-                        executor.exitDoActionOfOldState(evt, childFSM.getCurrentState(), null);
+                        eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
+                        executor.exitDoActionOfState(evt, childFSM.getCurrentState());
                     }
                 }
 
@@ -780,23 +790,27 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
         return executionThread;
     }
 
-    @Override
-    public ReentrantLock getFSMLock() {
+//    @Override
+    private ReentrantLock getFSMLock() {
         return this.fsmLock;
     }
 
-    private void reset_int() {
+    @Override
+    public void resetShallow() {
         evtQueue.clear();
         modifyFSMSafe(fsm-> fsm.setCurrentState(null));
     }
 
+    @Override
     public void reset() {
 
-        reset_int();
+        resetShallow();
 
         // reset children
         fsm.vmf().content().stream(FSM.class).filter(sm->sm.getExecutor()!=null).filter(sm->sm!=fsm)
-                .forEach(fsm->((Executor)fsm.getExecutor()).reset_int());
+                .forEach(fsm->
+                    fsm.getExecutor().resetShallow()
+                );
     }
 
     public void stop() {

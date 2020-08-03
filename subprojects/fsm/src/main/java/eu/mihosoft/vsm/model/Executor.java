@@ -1,7 +1,5 @@
 package eu.mihosoft.vsm.model;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 /**
  * Executor interface for executing finite state machines (FSM).
  */
@@ -44,25 +42,12 @@ public interface Executor {
     boolean processRemainingEvents();
 
     /**
-     * Starts the executor and waits until the state machine has stopped.
+     * Resets the associated state machine excluding nested state machines.
      */
-    void startAndWait();
+    void resetShallow();
 
     /**
-     * Starts the state machine and returns the thread object that is performing the
-     * execution. This method does return while the state machine is executed
-     * @return the thread performing the execution
-     */
-    Thread startAsync();
-
-    /**
-     * Returns the lock object that locks the FSM instance controlled by this executor.
-     * @return the lock object that locks the FSM instance controlled by this executor
-     */
-    ReentrantLock getFSMLock();
-
-    /**
-     * Resets the associated state machine.
+     * Resets the associated state machine including all nested state machines.
      */
     void reset();
 
@@ -85,17 +70,17 @@ public interface Executor {
     boolean hasRemainingEvents();
 
     /**
-     * Execution mode.
+     * Triggers the specified event and adds it to the head position of the event queue. This method should only
+     * be used if prioritized processing is necessary.
+     * @param evt
      */
-    enum ExecutionMode {
-        /**
-         * Regions aka nested FSMs are processed in the thread of the executed FSM.
-         */
-        SERIAL_REGIONS,
-        /**
-         * Regions aka nested FSMs are processed parallel.
-         */
-        PARALLEL_REGIONS,
-    }
+    void triggerFirst(Event evt);
+
+    /**
+     * Exits the do-action of the specified state.
+     * @param evt event that is associated with the cancellation of the specified states do-action
+     * @param state
+     */
+    void exitDoActionOfState(Event evt, State state);
 
 }
