@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Executor implements eu.mihosoft.vsm.model.Executor {
 
@@ -270,9 +271,11 @@ public class Executor implements eu.mihosoft.vsm.model.Executor {
                     continue;
                 }
 
-                Transition consumer = currentState.getOutgoingTransitions().
-                        stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).findFirst().
-                        orElse(null);
+                var consumers = currentState.getOutgoingTransitions().
+                        stream().filter(t -> Objects.equals(t.getTrigger(), evt.getName())).
+                        collect(Collectors.toList());
+
+                Transition consumer = consumers.stream().filter(c->guardMatches(c, evt)).findFirst().orElse(null);
 
                 boolean guardMatches;
 

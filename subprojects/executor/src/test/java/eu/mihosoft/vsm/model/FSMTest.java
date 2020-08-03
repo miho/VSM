@@ -155,7 +155,7 @@ public class FSMTest {
 
             executor.trigger("dispatch-money", 35);
 
-            Thread.sleep(400); // maybe replace this with completable future?
+            Thread.sleep(500); // maybe replace this with completable future?
 
             executor.stop();
 
