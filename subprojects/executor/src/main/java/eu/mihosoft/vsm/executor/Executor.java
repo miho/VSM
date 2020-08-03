@@ -70,15 +70,6 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     }
 
     @Override
-    public void trigger(String evt, Object... args) {
-
-        Event event = Event.newBuilder().withName(evt).withArgs(args)
-                .build();
-
-        trigger(event);
-    }
-
-    @Override
     public void trigger(Event event) {
         if(executionThread!=null) {
             synchronized(executionThread) {

@@ -18,7 +18,10 @@ public interface Executor {
      * @param evt event identifier
      * @param args optional event arguments
      */
-    void trigger(String evt, Object... args) ;
+    default void trigger(String evt, Object... args) {
+        Event event = Event.newBuilder().withName(evt).withArgs(args).build();
+        trigger(event);
+    }
 
     /**
      * Triggers the specified event.
