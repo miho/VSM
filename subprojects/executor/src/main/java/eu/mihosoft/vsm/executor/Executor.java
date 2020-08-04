@@ -297,6 +297,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
                     if (getCaller().getFinalState().contains(getCaller().getCurrentState())) {
                         log("  -> final state reached. stopping.");
+                        System.out.println("  -> final state reached. stopping.");
                         exitDoActionOfOldState(evt, getCaller().getCurrentState(), null);
                         getCaller().setRunning(false);
                     }
@@ -685,6 +686,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                         exitAction.execute(oldState, evt);
                     }
                 } catch (Exception ex) {
+                    // mark as exited, because exit action already failed (prevents stack-overflow)
+                    stateExited.put(oldState, true);
                     handleExecutionError(evt, oldState, newState, ex);
                     return false;
                 } finally {

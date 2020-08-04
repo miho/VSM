@@ -104,6 +104,18 @@ public final class Storage {
     }
 
     /**
+     * Removes a value specified by its key.
+     * @param key the key of the value to return
+     * @param <T> type of the value
+     * @return optional value (empty, if the value to be removed does not exist)
+     */
+    public <T> Optional<T> removeValue(String key) {
+        Optional<T> result = Optional.ofNullable((T) map.remove(key));
+
+        return result;
+    }
+
+    /**
      * Indicates whether this storage contains the value specified by its key.
      * @param key key of the value to check
      * @return {@code true} if the value exists in this storage; {@code false} otherwise
