@@ -64,6 +64,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
         Event event = Event.newBuilder().withName(evt).withArgs(args)
                 .withAction(onConsumed)
+                .withTimeStamp(System.nanoTime())
                 .build();
 
         trigger(event);

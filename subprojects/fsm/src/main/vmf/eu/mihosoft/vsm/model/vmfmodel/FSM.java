@@ -153,5 +153,6 @@ interface Event {
     boolean isDeferred();
     boolean isConsumed();
     boolean isLocal();
+    long getTimeStamp();
 }
 
