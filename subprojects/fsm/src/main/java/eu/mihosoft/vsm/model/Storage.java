@@ -92,15 +92,35 @@ public final class Storage {
     }
 
     /**
+     * Atomically performs a computation with the key and the value as its inputs. The function should not modify
+     * the map or its elements.
+     * @param key key of the value to update
+     * @param func function that atomically performs the computation
+     */
+    public <T> T compute(String key, BiFunction<String, Object, T> func) {
+        writeMapLock.lock();
+        try {
+            var res = func.apply(key, map.get(key));
+            return res;
+        } finally {
+            writeMapLock.unlock();
+        }
+    }
+
+    /**
      * Returns a value specified by its key.
      * @param key the key of the value to return
      * @param <T> type of the value
      * @return optional value (empty, if the value does not exist)
      */
     public <T> Optional<T> getValue(String key) {
-        Optional<T> result = Optional.ofNullable((T) map.get(key));
-
-        return result;
+        writeMapLock.lock();
+            try {
+            Optional<T> result = Optional.ofNullable((T) map.get(key));
+            return result;
+        } finally {
+            writeMapLock.unlock();
+        }
     }
 
     /**
@@ -133,7 +153,10 @@ public final class Storage {
         writeMapLock.lock();
         try {
             for(Executor listener : listeners) {
-                listener.trigger(Events.DATA_UPDATED.name(), key, value);
+                listener.trigger(Event.newBuilder().
+                        withName(Events.DATA_UPDATED.name()).
+                        withArgs(key)//,value) // TODO value is dangerous if not immutable
+                        .build());
             }
         } finally {
             writeMapLock.unlock();

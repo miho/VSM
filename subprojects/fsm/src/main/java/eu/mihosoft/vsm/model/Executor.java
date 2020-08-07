@@ -1,5 +1,7 @@
 package eu.mihosoft.vsm.model;
 
+import java.util.List;
+
 /**
  * Executor interface for executing finite state machines (FSM).
  */
@@ -28,6 +30,7 @@ public interface Executor {
      * @param event event to be triggered
      */
     void trigger(Event event);
+
 
     /**
      * Triggers and processes the specified event. The state machine must
