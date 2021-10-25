@@ -38,7 +38,7 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.hamcrest:hamcrest:2.2'
 
-    compile project(":subprojects:fsm")
+    implementation project(":subprojects:fsm")
 }
 
 // compileTestJava.options.compilerArgs.add("--enable-preview")

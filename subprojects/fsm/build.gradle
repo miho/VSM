@@ -42,12 +42,10 @@ dependencies {
 }
 
 // set dependencies for intellij editor (otherwise vmf dir would be ignored)
-idea {
-    module {
+idea.module {
         dependencies {
-            compile group: 'eu.mihosoft.vmf', name: 'vmf', version: rootProject.commonProps.get("vmf.version")
+            implementation group: 'eu.mihosoft.vmf', name: 'vmf', version: rootProject.commonProps.get("vmf.version")
         }
-    }
 }
 
 
