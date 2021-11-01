@@ -12,3 +12,5 @@ rootProject.name = 'VSM'
 
 include ':subprojects:fsm'
 include ':subprojects:executor'
+
+include ':subprojects:vrlfsm'
