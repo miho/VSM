@@ -128,7 +128,7 @@ public class FSMTest {
             fsm.vmf().reflect().propertyByName("currentState").orElseThrow().addChangeListener(change -> {
                 var oldV = (State) change.propertyChange().orElseThrow().oldValue();
                 var newV = (State) change.propertyChange().orElseThrow().newValue();
-                System.out.println("> transitioned from " +
+                System.out.println(Thread.currentThread() + " > transitioned from " +
                         (oldV == null ? "<undefined>" : oldV.getName()) +
                         " to " +
                         (newV == null ? "<undefined>" : newV.getName()));
@@ -165,6 +165,8 @@ public class FSMTest {
                     + visitedStates.stream().map(s -> s.getName()).
                     collect(Collectors.joining(", "))
             );
+
+            System.out.println("> number of active threads: " + ManagementFactory.getThreadMXBean().getThreadCount());
 
             assertThat(visitedStates, contains(
                     idleState,
