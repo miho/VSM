@@ -77,22 +77,32 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     @Override
     public void trigger(Event event) {
+
+        if(event.isConsumed()) throw new IllegalArgumentException("Cannot trigger consumed event: " + event.getName());
+
+        if(event.getTimeStamp()==0) event.setTimeStamp(System.nanoTime());
+        evtQueue.add(event);
+
         if(executionThread!=null) {
             synchronized(executionThread) {
                 executionThread.notify();
             }
         }
-        evtQueue.add(event);
     }
 
     @Override
     public void triggerFirst(Event event) {
+
+        if(event.isConsumed()) throw new IllegalArgumentException("Cannot trigger consumed event: " + event.getName());
+
+        if(event.getTimeStamp()==0) event.setTimeStamp(System.nanoTime());
+        evtQueue.addFirst(event);
+
         if(executionThread!=null) {
             synchronized(executionThread) {
                 executionThread.notify();
             }
         }
-        evtQueue.addFirst(event);
     }
 
     public boolean process(String evt, EventConsumedAction onConsumed, Object... args) {
