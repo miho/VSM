@@ -1,6 +1,8 @@
 package eu.mihosoft.vsm.model;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * Executor interface for executing finite state machines (FSM).
@@ -88,5 +90,12 @@ public interface Executor {
      * @param state
      */
     void exitDoActionOfState(Event evt, State state);
+
+    /**
+     * Allows save access to the managed FSM.
+     * TODO implement proper actor model
+     * @param fsmTask task to perform
+     */
+     void accessFSMSafe(Consumer<FSM> fsmTask);
 
 }

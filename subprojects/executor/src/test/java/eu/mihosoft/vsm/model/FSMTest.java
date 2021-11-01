@@ -10,10 +10,9 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.lang.management.ManagementFactory;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -23,8 +22,19 @@ public class FSMTest {
     private static final eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode MODE
             = eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
-    private static final int NUM_ITERATIONS_LARGE_TESTS = 3;
-    private static final int NUM_ITERATIONS_SMALL_TESTS = 10;
+    private static final int NUM_ITERATIONS_LARGE_TESTS = 25;
+    private static final int NUM_ITERATIONS_SMALL_TESTS = 100;
+
+    static boolean sleepRandom(long min, long max) {
+        long duration = ThreadLocalRandom.current().nextLong(max - min + 1) + min;
+        try {
+            Thread.sleep(duration);
+            return true;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     @Test public void testATMFSM() throws InterruptedException {
 
@@ -64,12 +74,7 @@ public class FSMTest {
                         System.out.println("-> pin entered");
                         System.out.println("-> checking...");
 
-                        try {
-                            Thread.sleep(250);
-                        } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
+                        sleepRandom(0,250);
 
                         if (evt.getArgs().isEmpty()) {
                             return false;
@@ -88,12 +93,7 @@ public class FSMTest {
             Transition moneyDispatchedTransition = Transition.newBuilder().withTrigger("dispatch-money")
                     .withActions((s, e) -> {
                         System.out.println("-> checking whether requested amount is available");
-                        try {
-                            Thread.sleep(50);
-                        } catch (InterruptedException ex) {
-                            // TODO Auto-generated catch block
-                            ex.printStackTrace();
-                        }
+                        sleepRandom(0,80);
                         System.out.println("-> money-dispatched");
                     })
                     .withSource(amountRequested)
@@ -141,21 +141,23 @@ public class FSMTest {
 
             executor.startAsync();
 
-            Thread.sleep(150);
+            sleepRandom(0,2500);
 
             executor.trigger("insert-card", "DE6594339437");
 
-            Thread.sleep(50);
+            sleepRandom(0,250);
 
             executor.trigger("enter-pin", 1234);
 
-            Thread.sleep(50);
+            sleepRandom(0,350);
 
             executor.trigger("request-amount", 35);
 
-            executor.trigger("dispatch-money", 35);
+            var f = new CompletableFuture();
+            executor.trigger("dispatch-money",(e, t) -> {f.complete(null);} , 35);
 
-            Thread.sleep(500); // maybe replace this with completable future?
+            // wait until last event is consumed
+            f.orTimeout(10000, TimeUnit.MILLISECONDS).join();
 
             executor.stop();
 
@@ -314,8 +316,8 @@ public class FSMTest {
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
             //executor.process("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
 
-
             Thread.sleep(1500);
+
             executor.stop();
 
             var expectedEvtList = Arrays.asList(
@@ -340,6 +342,9 @@ public class FSMTest {
 
             // test without enter do-action-in-state-c, because position may vary
             actualEvtList.remove("enter do-action-in-state-c");
+
+            System.out.println("---------------------------------");
+            System.out.println(actualEvtList);
 
             // A better way to verify correct execution is to trace child FSMs aka regions individually.
             // But in this configuration we cannot test for a specific sequence.
@@ -1095,7 +1100,7 @@ public class FSMTest {
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, true);
                 Executor executor = Executor.newInstance(fsm, MODE);
 
-                Thread thread = executor.startAsync();
+                executor.startAsync();
 
                 System.out.println("----> triggering event 1");
                 executor.trigger("event1");
@@ -1132,7 +1137,7 @@ public class FSMTest {
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, false);
                 Executor executor = Executor.newInstance(fsm, MODE);
 
-                Thread thread = executor.startAsync();
+                executor.startAsync();
 
                 System.out.println("----> triggering event 1");
                 executor.trigger("event1");

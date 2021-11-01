@@ -1,5 +1,6 @@
 package eu.mihosoft.vsm.model;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReentrantLock;
 
 public interface AsyncExecutor extends Executor {
@@ -11,15 +12,16 @@ public interface AsyncExecutor extends Executor {
     /**
      * Starts the state machine and returns the thread object that is performing the
      * execution. This method does return while the state machine is executed
-     * @return the thread performing the execution
+     * @return future that completes if the execution stopped
      */
-    Thread startAsync();
+    CompletableFuture<Void> startAsync();
 
-//    /**
-//     * Returns the lock object that locks the FSM instance controlled by this executor.
-//     * @return the lock object that locks the FSM instance controlled by this executor
-//     */
-//    ReentrantLock getFSMLock();
+    /**
+     * Stops the execution of the state machine.
+     *
+     * @return future that completes if the execution stopped
+     */
+    CompletableFuture<Void> stopAsync();
 
     /**
      * Execution mode.
