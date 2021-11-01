@@ -22,8 +22,8 @@ public class FSMTest {
     private static final eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode MODE
             = eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
-    private static final int NUM_ITERATIONS_LARGE_TESTS = 5;
-    private static final int NUM_ITERATIONS_SMALL_TESTS = 10;
+    private static final int NUM_ITERATIONS_LARGE_TESTS = 25;
+    private static final int NUM_ITERATIONS_SMALL_TESTS = 100;
 
     static boolean sleepRandom(long min, long max) {
         long duration = ThreadLocalRandom.current().nextLong(max - min + 1) + min;
