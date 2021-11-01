@@ -712,86 +712,76 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         return true;
     }
 
-    @Override
+    //@Override
     public void exitDoActionOfState(Event evt, State state) {
         this.exitDoActionOfOldState(evt, state, null);
     }
 
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
 
-        boolean acquiredLock = false;
-        if(!fsmLock.isLocked()) {
-            fsmLock.lock();
-            acquiredLock = true;
-        }
+        if (oldState != null && !(stateExited.get(oldState) == null ? false : stateExited.get(oldState))) {
 
-        try {
-
-            if (oldState != null && !(stateExited.get(oldState) == null ? false : stateExited.get(oldState))) {
-
-                try {
-                    if (doActionThread != null && doActionFuture != null) {
-                        doActionThread.interrupt();
-                        doActionFuture.get(
-                                Math.min(
-                                        getCaller().getMaxCancellationTimeout().toMillis(),
-                                        oldState.getCancellationTimeout().toMillis()
-                                ),
-                                TimeUnit.MILLISECONDS);
-                    }
-                } catch (Exception ex) {
-                    doActionThread = null;
-                    doActionFuture = null;
-                    handleExecutionError(evt, oldState, newState, ex);
-                } finally {
-                    doActionThread = null;
-                    doActionFuture = null;
+            try {
+                if (doActionThread != null && doActionFuture != null) {
+                    doActionThread.interrupt();
+                    doActionFuture.get(
+                            Math.min(
+                                    getCaller().getMaxCancellationTimeout().toMillis(),
+                                    oldState.getCancellationTimeout().toMillis()
+                            ),
+                            TimeUnit.MILLISECONDS);
                 }
-
-                // exit children states
-                if (oldState instanceof FSMState) {
-                    FSMState fsmState = (FSMState) oldState;
-                    for (FSM childFSM : fsmState.getFSMs()) {
-                        eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
-                        executor.exitDoActionOfState(evt, childFSM.getCurrentState());
-                    }
-                }
-
-                try {
-                    StateAction exitAction = oldState.getOnExitAction();
-                    if (exitAction != null) {
-                        try {
-                            fsmLock.unlock();
-                            // exitAction.execute(oldState, evt);
-                            CompletableFuture.runAsync(() -> {
-                                fsmLock.lock();
-                                try {
-                                    exitAction.execute(oldState, evt);
-                                } finally {
-                                    fsmLock.unlock();
-                                }
-                            }).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
-                        } finally {
-                            fsmLock.lock();
-                        }
-                    }
-                } catch (Exception ex) {
-                    // mark as exited, because exit action already failed (prevents stack-overflow)
-                    stateExited.put(oldState, true);
-                    handleExecutionError(evt, oldState, newState, ex);
-                    return false;
-                } finally {
-                    stateExited.put(oldState, true);
-                }
-
-            } // end if oldState != null
-
-            return true;
-        } finally {
-            if(acquiredLock) {
-                fsmLock.unlock();
+            } catch (Exception ex) {
+                doActionThread = null;
+                doActionFuture = null;
+                handleExecutionError(evt, oldState, newState, ex);
+            } finally {
+                doActionThread = null;
+                doActionFuture = null;
             }
-        }
+
+            // exit children states
+            if (oldState instanceof FSMState) {
+                FSMState fsmState = (FSMState) oldState;
+                for (FSM childFSM : fsmState.getFSMs()) {
+                    eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
+                    executor.accessFSMSafe(fsmc -> {
+                        executor.exitDoActionOfState(evt, childFSM.getCurrentState());
+                    });
+                }
+            }
+
+            try {
+                StateAction exitAction = oldState.getOnExitAction();
+                if (exitAction != null) {
+                    try {
+                        fsmLock.unlock();
+                        // exitAction.execute(oldState, evt);
+                        CompletableFuture.runAsync(() -> {
+                            fsmLock.lock();
+                            try {
+                                exitAction.execute(oldState, evt);
+                            } finally {
+                                fsmLock.unlock();
+                            }
+                        }).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                    } finally {
+                        fsmLock.lock();
+                    }
+                }
+            } catch (Exception ex) {
+                // mark as exited, because exit action already failed (prevents stack-overflow)
+                stateExited.put(oldState, true);
+                handleExecutionError(evt, oldState, newState, ex);
+                return false;
+            } finally {
+                stateExited.put(oldState, true);
+            }
+
+        } // end if oldState != null
+
+        return true;
+
     }
 
     private boolean guardMatches(Transition consumer, Event evt) {
