@@ -20,6 +20,10 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     private final int depth;
     private final FSM fsm;
     private final ReentrantLock fsmLock = new ReentrantLock();
+
+    // lock to perform safe conditional fsm locking
+    private final ReentrantLock fsmLockLock = new ReentrantLock();
+
     private final ReentrantLock eventLock = new ReentrantLock();
 
     private final List<Executor> pathToRoot = new ArrayList<>();
@@ -95,6 +99,58 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         evtQueue.addFirst(event);
     }
 
+    private boolean lockFSMIfUnlocked() {
+        fsmLockLock.lock();
+        try {
+            if (!fsmLock.isLocked()) {
+                fsmLock.lock();
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            fsmLockLock.unlock();
+        }
+    }
+
+    private boolean unlockFSMIfLocked() {
+        fsmLockLock.lock();
+        try {
+            if (fsmLock.isLocked()) {
+                fsmLock.unlock();
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            fsmLockLock.unlock();
+        }
+    }
+
+    private void lockFSM() {
+        fsmLockLock.lock();
+        try {
+            try {
+                if(!fsmLock.tryLock(10000, TimeUnit.MILLISECONDS)) {
+                    throw new RuntimeException("Cannot acquire lock");
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException("locking failed ", e);
+            }
+        } finally {
+            fsmLockLock.unlock();
+        }
+    }
+
+    private void unlockFSM() {
+        fsmLockLock.lock();
+        try {
+            fsmLock.unlock();
+        } finally {
+            fsmLockLock.unlock();
+        }
+    }
+
     public boolean process(String evt, EventConsumedAction onConsumed, Object... args) {
         try {
             trigger(evt, onConsumed, args);
@@ -124,30 +180,35 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     private String level(FSM fsm) {
 
-        String result = fsm.getName();
-        FSMState parent = fsm.getParentState();
+        var f = new CompletableFuture<String>();
+        accessFSMSafe((unused) ->{
+            String result = fsm.getName();
+            FSMState parent = fsm.getParentState();
 
-        while(parent!=null) {
-            try {
-                result = parent.getOwningFSM().getName() + "|" + result;
-                parent = parent.getOwningFSM().getParentState();
-            } catch(NullPointerException ex) {
-                break;
+            while(parent!=null) {
+                try {
+                    result = parent.getOwningFSM().getName() + "|" + result;
+                    parent = parent.getOwningFSM().getParentState();
+                } catch(NullPointerException ex) {
+                    break;
+                }
             }
 
-        }
+            f.complete(result);
 
-        return result;
+        });
+
+        return f.join();
     }
 
 
     @Override
     public void accessFSMSafe(Consumer<FSM> fsmTask) {
-        fsmLock.lock();
+        boolean acquiredLock = lockFSMIfUnlocked();
         try {
             fsmTask.accept(getCaller());
         } finally {
-            fsmLock.unlock();
+            if(acquiredLock) unlockFSM();
         }
     }
 
@@ -158,7 +219,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
         // everything modified concurrently with start(), reset(), stop() etc. must be inside
         // locked code block
-        fsmLock.lock();
+        boolean acquiredLock = lockFSMIfUnlocked();
+        boolean consumed = false;
         try {
             if (!getCaller().isRunning()) return false;
             if (getCaller().getOwnedState().isEmpty()) return false;
@@ -175,12 +237,6 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 );
             }
 
-        } finally {
-            fsmLock.unlock();
-        }
-
-
-        boolean consumed = false;
         State prevState = getCaller().getCurrentState();
 
         if(prevState instanceof FSMState) {
@@ -204,11 +260,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             }
         }
 
-
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
-            fsmLock.lock();
-            try {
                 Event evt = iter.next();
                 boolean removed = false;
                 State currentState = getCaller().getCurrentState();
@@ -324,18 +377,18 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
                         if (evt.getAction() != null) {
                             // evt.getAction().execute(evt, consumer);
-                            fsmLock.unlock();
+                           // unlockFSM();
                             try {
                                 CompletableFuture.runAsync(() -> {
-                                    fsmLock.lock();
+                                    //lockFSM();
                                     try {
                                         evt.getAction().execute(evt, consumer);
                                     } finally {
-                                        fsmLock.unlock();
+                                        //unlockFSM();
                                     }
                                 }).orTimeout(MAX_EVT_CONSUMED_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).join();
                             } finally {
-                                fsmLock.lock();
+                                // lockFSM();
                             }
                         }
 
@@ -363,11 +416,12 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                         }
                     }
                 }
-            } finally {
-                fsmLock.unlock();
-            }
 
         } // end for
+
+        } finally {
+            if(acquiredLock) unlockFSM();
+        }
 
         return consumed;
     }
@@ -538,20 +592,20 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
                     // execute action
                     // action.execute(consumer, evt);
-                    fsmLock.unlock();
+                    unlockFSM();
                     CompletableFuture.runAsync(()->{
-                        fsmLock.lock();
+                        lockFSM();
                         try {
                             action.execute(consumer, evt);
                         } finally {
-                            fsmLock.unlock();
+                            unlockFSM();
                         }
                     }).orTimeout(MAX_TRANSITION_ACTION_TIMEOUT,TimeUnit.MILLISECONDS).get();
                 } catch (Exception ex) {
                     handleExecutionError(evt, consumer.getSource(), consumer.getTarget(), ex);
                     return;
                 } finally {
-                    fsmLock.lock();
+                    lockFSM();
                 }
             });
         }
@@ -567,18 +621,18 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                     if (entryAction != null) {
 
                         try {
-                            fsmLock.unlock();
+                            unlockFSM();
                             //entryAction.execute(s, evt);
                             CompletableFuture.runAsync(() -> {
-                                fsmLock.lock();
+                                lockFSM();
                                 try {
                                     entryAction.execute(s, evt);
                                 } finally {
-                                    fsmLock.unlock();
+                                    unlockFSM();
                                 }
                             }).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                         } finally {
-                            fsmLock.lock();
+                            lockFSM();
                         }
                     }
 
@@ -588,7 +642,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                     if(enterAndExit &&  s instanceof FSMState) {
                         FSMState fsmState = (FSMState)  s;
                         for(FSM childFSM : fsmState.getFSMs()) {
-                            fsmLock.lock();
+                            lockFSM();
                             try {
                                 // create a new execute for child fsm if it doesn't exist yet
                                 if (childFSM.getExecutor() == null) {
@@ -598,7 +652,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                                 executor.reset();
                                 childFSM.setRunning(true);
                             } finally {
-                                fsmLock.unlock();
+                                unlockFSM();
                             }
                         }
                     }
@@ -614,18 +668,18 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 StateAction entryAction = newState.getOnEntryAction();
                 if (entryAction != null) {
                     try {
-                        fsmLock.unlock();
+                        unlockFSM();
                         //entryAction.execute(newState, evt);
                         CompletableFuture.runAsync(() -> {
-                            fsmLock.lock();
+                            lockFSM();
                             try {
                                 entryAction.execute(newState, evt);
                             } finally {
-                                fsmLock.unlock();
+                                unlockFSM();
                             }
                         }).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                     } finally {
-                        fsmLock.lock();
+                        lockFSM();
                     }
                 }
 
@@ -644,7 +698,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             FSMState fsmState = (FSMState) newState;
             for(FSM childFSM : fsmState.getFSMs()) {
 
-                fsmLock.lock();
+                lockFSM();
                 try {
                     // create a new execute for child fsm if it doesn't exist yet
                     if (childFSM.getExecutor() == null) {
@@ -657,18 +711,18 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                         cfsm.setRunning(true);
                     });
                 } finally {
-                    fsmLock.unlock();
+                    unlockFSM();
                 }
             }
         }
 
         // transition done, set new current state
-        fsmLock.lock();
+        lockFSM();
         try {
             getCaller().setCurrentState(newState);
             stateExited.put(newState, false);
         } finally {
-            fsmLock.unlock();
+            unlockFSM();
         }
     }
 
@@ -719,11 +773,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
 
-        boolean acquiredLock = false;
-        if(!fsmLock.isLocked()) {
-            fsmLock.lock();
-            acquiredLock = true;
-        }
+        boolean acquiredLock = lockFSMIfUnlocked();
 
         try {
 
@@ -761,18 +811,18 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                     StateAction exitAction = oldState.getOnExitAction();
                     if (exitAction != null) {
                         try {
-                            fsmLock.unlock();
+                            unlockFSM();
                             // exitAction.execute(oldState, evt);
                             CompletableFuture.runAsync(() -> {
-                                fsmLock.lock();
+                                lockFSM();
                                 try {
                                     exitAction.execute(oldState, evt);
                                 } finally {
-                                    fsmLock.unlock();
+                                    unlockFSM();
                                 }
                             }).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                         } finally {
-                            fsmLock.lock();
+                            lockFSM();
                         }
                     }
                 } catch (Exception ex) {
@@ -789,7 +839,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             return true;
         } finally {
             if(acquiredLock) {
-                fsmLock.unlock();
+                unlockFSM();
             }
         }
     }
@@ -893,11 +943,6 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         return f;
     }
 
-//    @Override
-    private ReentrantLock getFSMLock() {
-        return this.fsmLock;
-    }
-
     @Override
     public void resetShallow() {
         evtQueue.clear();
@@ -950,7 +995,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     @Override
     public boolean hasRemainingEvents() {
 
-        fsmLock.lock();
+        lockFSM();
         try {
 
             if (!getCaller().isRunning()) return false;
@@ -979,7 +1024,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             return false;
 
         } finally {
-            fsmLock.unlock();
+            unlockFSM();
         }
     }
 }
