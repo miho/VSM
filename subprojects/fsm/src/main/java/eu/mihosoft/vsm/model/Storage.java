@@ -115,7 +115,7 @@ public final class Storage {
      */
     public <T> Optional<T> getValue(String key) {
         writeMapLock.lock();
-            try {
+        try {
             Optional<T> result = Optional.ofNullable((T) map.get(key));
             return result;
         } finally {
@@ -170,7 +170,22 @@ public final class Storage {
         /**
          * Indicates data update (value added or removed).
          */
-        DATA_UPDATED
+        DATA_UPDATED("fsm:storage:data-updated");
+
+        private final String name;
+
+        private Events(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 }
 

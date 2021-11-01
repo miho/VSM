@@ -527,7 +527,7 @@ public class FSMTest {
                         Transition.newBuilder()
                                 .withSource(stateC)
                                 .withTarget(stateA)
-                                .withTrigger("fsm:on-do-action-done")
+                                .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.DO_ACTION_DONE.getName())
                                 .build()
                 )
                 .build();
@@ -1312,7 +1312,7 @@ public class FSMTest {
                     .build();
 
             Transition c1_c2 = Transition.newBuilder()
-                    .withTrigger("fsm:state-done")
+                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
                     .withSource(c1)
                     .withTarget(c2)
                     .build();
@@ -1377,19 +1377,19 @@ public class FSMTest {
                     .build();
 
             Transition s1_childFSMState = Transition.newBuilder()
-                    .withTrigger("fsm:state-done")
+                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
                     .withSource(s1)
                     .withTarget(childFSMState)
                     .build();
 
             Transition childFSMState_s2 = Transition.newBuilder()
-                    .withTrigger("fsm:final-state")
+                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.FINAL_STATE.getName())
                     .withSource(childFSMState)
                     .withTarget(s2)
                     .build();
 
             Transition s2_s3 = Transition.newBuilder()
-                    .withTrigger("fsm:state-done")
+                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
                     .withSource(s2)
                     .withTarget(s3)
                     .build();
@@ -1518,13 +1518,13 @@ public class FSMTest {
                 .build();
 
         Transition s1_s2 = Transition.newBuilder()
-                .withTrigger("fsm:state-done")
+                .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
                 .withSource(s1)
                 .withTarget(s2)
                 .build();
 
         Transition s2_s3 = Transition.newBuilder()
-                .withTrigger("fsm:state-done")
+                .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
                 .withSource(s2)
                 .withTarget(s3)
                 .build();

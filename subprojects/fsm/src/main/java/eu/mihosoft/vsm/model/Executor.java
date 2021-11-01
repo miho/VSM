@@ -1,7 +1,5 @@
 package eu.mihosoft.vsm.model;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -32,7 +30,6 @@ public interface Executor {
      * @param event event to be triggered
      */
     void trigger(Event event);
-
 
     /**
      * Triggers and processes the specified event. The state machine must
@@ -97,5 +94,48 @@ public interface Executor {
      * @param fsmTask task to perform
      */
      void accessFSMSafe(Consumer<FSM> fsmTask);
+
+    /**
+     * Events triggered by the state machine.
+     */
+    public enum FSMEvents {
+
+        /**
+         * Triggerred if state is done.
+         */
+        STATE_DONE("fsm:state-done"),
+        /**
+         * Triggered if do-action is done.
+         */
+        DO_ACTION_DONE("fsm:on-do-action-done"),
+        /**
+         * Triggered if an error occurred.
+         */
+        ERROR("fsm:error"),
+        /**
+         * Triggerred on init.
+         */
+        INIT("fsm:init"),
+        /**
+         * Triggered if final state has been reached.
+         */
+        FINAL_STATE("fsm:final-state"),
+        ;
+
+        private final String name;
+
+        private FSMEvents(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
 
 }

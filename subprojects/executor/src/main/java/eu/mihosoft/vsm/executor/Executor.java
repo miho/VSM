@@ -178,7 +178,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 firedDoActionDone = false;
                 firedFinalState   = false;
                 performStateTransition(
-                        Event.newBuilder().withName("fsm:init").build(),
+                        Event.newBuilder().withName(FSMEvents.INIT.getName()).build(),
                         null,
                         getCaller().getInitialState(),
                         null
@@ -208,7 +208,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                         .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
                 if(allMatch && !firedFinalState) {
-                    triggerFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                    triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
                     firedFinalState = true;
                 }
             }
@@ -238,7 +238,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 }
 
                 // handle errors
-                if("fsm:error".equals(evt.getName())) {
+                if(FSMEvents.ERROR.getName().equals(evt.getName())) {
                     handleExecutionError((Event)evt.getArgs().get(0),
                             (State) evt.getArgs().get(1),
                             (State) evt.getArgs().get(2),
@@ -261,21 +261,21 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                     consumed = consumedParam.get();
                 } else {
                     if(!firedFinalState) {
-                        triggerFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+                        triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
                         firedFinalState = true;
                     }
                 }
 
-                if("fsm:final-state".equals(evt.getName())) {
+                if(FSMEvents.FINAL_STATE.getName().equals(evt.getName())) {
                     firedFinalState = true;
                 }
 
-                if("fsm:on-do-action-done".equals(evt.getName())) {
+                if(FSMEvents.DO_ACTION_DONE.getName().equals(evt.getName())) {
                     firedDoActionDone = true;
                 }
 
-                if(!"fsm:state-done".equals(evt.getName()) && firedFinalState && firedDoActionDone) {
-                    trigger(Event.newBuilder().withName("fsm:state-done").withLocal(true).build());
+                if(!FSMEvents.STATE_DONE.getName().equals(evt.getName()) && firedFinalState && firedDoActionDone) {
+                    trigger(Event.newBuilder().withName(FSMEvents.STATE_DONE.getName()).withLocal(true).build());
                 }
 
                 // children consumed event
@@ -441,7 +441,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
         if(allMatch && !firedFinalState) {
-            triggerFirst(Event.newBuilder().withName("fsm:final-state").withLocal(true).build());
+            triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
             firedFinalState = true;
         }
     }
@@ -450,7 +450,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         if(getCaller().getErrorState()!=null) {
             performStateTransition(
                     Event.newBuilder()
-                            .withName("fsm:error")
+                            .withName(FSMEvents.ERROR.getName())
                             .withArgs(ex, evt)
                             .build(),
                     oldState, getCaller().getErrorState(), null);
@@ -466,7 +466,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             }
 
             eu.mihosoft.vsm.model.Executor parentExecutor = getCaller().getParentState().getOwningFSM().getExecutor();
-            parentExecutor.triggerFirst(Event.newBuilder().withName("fsm:error").
+            parentExecutor.triggerFirst(Event.newBuilder().withName(FSMEvents.ERROR.getName()).
                     withArgs(evt, oldState, newState, ex).build());
 
         }
@@ -688,7 +688,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             StateAction doAction = newState.getDoAction();
             if(doAction!=null) {
                 Runnable doActionDone = ()->{
-                    triggerFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
+                    triggerFirst(Event.newBuilder().withName(FSMEvents.DO_ACTION_DONE.getName()).withLocal(true).build());
                 };
 
                 try {
@@ -713,7 +713,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 }
             } else {
                 // no do-action means, we are done after onEnter()
-                triggerFirst(Event.newBuilder().withName("fsm:on-do-action-done").withLocal(true).build());
+                triggerFirst(Event.newBuilder().withName(FSMEvents.DO_ACTION_DONE.getName()).withLocal(true).build());
             }
         } catch(Exception ex) {
             handleExecutionError(evt, oldState, newState, ex);

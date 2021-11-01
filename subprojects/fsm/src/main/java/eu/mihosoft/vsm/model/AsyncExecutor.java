@@ -1,7 +1,6 @@
 package eu.mihosoft.vsm.model;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.locks.ReentrantLock;
 
 public interface AsyncExecutor extends Executor {
     /**
