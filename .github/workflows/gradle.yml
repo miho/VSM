@@ -30,6 +30,11 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Publish Unit Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v1
+      if: always()
+      with:
+        files: test-results/**/*.xml  
     - name: upload test results
       uses: actions/upload-artifact@v1
       if: ${{ always() }}  
@@ -56,6 +61,11 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Publish Unit Test Results
+      uses: EnricoMi/publish-unit-test-result-action/composite@v1
+      if: always()
+      with:
+        files: test-results/**/*.xml
     - name: upload test results
       uses: actions/upload-artifact@v1
       if: ${{ always() }}  
@@ -82,6 +92,11 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Publish Unit Test Results
+      uses: EnricoMi/publish-unit-test-result-action/composite@v1
+      if: always()
+      with:
+        files: test-results/**/*.xml  
     - name: upload test results
       uses: actions/upload-artifact@v1
       if: ${{ always() }}  
@@ -109,6 +124,11 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Publish Unit Test Results
+      uses: EnricoMi/publish-unit-test-result-action/composite@v1
+      if: always()
+      with:
+        files: test-results/**/*.xml  
     - name: upload test results
       uses: actions/upload-artifact@v1
       if: ${{ always() }}  
