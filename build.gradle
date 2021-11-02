@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 buildscript {
 
     ext.commonProps = new Properties()
@@ -6,11 +8,13 @@ buildscript {
 
 plugins {
     // id 'my-plugin' apply false
+    id 'com.github.hierynomus.license' version '0.16.1' apply false
 }
 
 allprojects {
 
     apply plugin: 'java'
+    apply plugin: 'com.github.hierynomus.license'
     
     sourceCompatibility = 11
     targetCompatibility = 11
@@ -28,6 +32,24 @@ allprojects {
     test {
         // jvmArgs=['--enable-preview']
         failFast = false
+    }
+
+    license {
+        header = rootProject.file('config/HEADER')
+        strictCheck = true
+        ignoreFailures = true
+
+        mapping {
+            java   = 'SLASHSTAR_STYLE'
+            groovy = 'SLASHSTAR_STYLE'
+            fxml   = 'XML_STYLE'
+        }
+
+        ext.yearCurrent  = new SimpleDateFormat("yyyy").format(new Date())
+        ext.yearSince1   = '2019'
+        ext.author1 = 'Michael Hoffer <info@michaelhoffer.de>'
+
+        exclude '**/*.svg'
     }
 }
 
