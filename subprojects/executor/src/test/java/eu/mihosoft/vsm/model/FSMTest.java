@@ -1997,7 +1997,7 @@ public class FSMTest {
 //            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
 //        }
 
-        s3s1F.orTimeout(1000*numberOFChildren, TimeUnit.MILLISECONDS).join();
+        s3s1F.orTimeout(3000*numberOFChildren, TimeUnit.MILLISECONDS).join();
 
         executor.stop();
 
