@@ -234,7 +234,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
                 if(allMatch && !firedFinalState) {
                     log("> triggering final-state, currently in state " + prevState.getName());
-                    triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
+                    triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true)
+                            .withArgs(fsmState.getName()+":"+System.identityHashCode(fsmState)).build());
                     firedFinalState = true;
                     log(" -> final state reached via: "
                             + fsmState.getFSMs().stream().map(cfsm->cfsm.getName()).collect(Collectors.toList()));
@@ -317,7 +318,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
                 if(!firedStateDone && (firedFinalState || !isFSMState) && firedDoActionDone) {
                     log("> triggering state-done, currently in state " + currentState.getName());
-                    triggerFirst(Event.newBuilder().withName(FSMEvents.STATE_DONE.getName()).withLocal(true).build());
+                    triggerFirst(Event.newBuilder().withName(FSMEvents.STATE_DONE.getName()).withLocal(true)
+                            .withArgs(currentState.getName()+":"+System.identityHashCode(currentState)).build());
                     firedStateDone = true;
                 }
 
@@ -499,7 +501,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
         if(allMatch && !firedFinalState) {
             log("> triggering final-state, currently in state " + currentState.getName());
-            triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
+            triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true)
+                    .withArgs(currentState.getName()+":"+System.identityHashCode(currentState)).build());
             firedFinalState = true;
             log(" -> final state reached via: "
                 + fsmState.getFSMs().stream().map(cfsm->cfsm.getName()).collect(Collectors.toList()));
@@ -748,7 +751,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             StateAction doAction = newState.getDoAction();
             if(doAction!=null) {
                 Runnable doActionDone = ()->{
-                    triggerFirst(Event.newBuilder().withName(FSMEvents.DO_ACTION_DONE.getName()).withLocal(true).build());
+                    triggerFirst(Event.newBuilder().withName(FSMEvents.DO_ACTION_DONE.getName()).withLocal(true)
+                            .withArgs(newState.getName()+":"+System.identityHashCode(newState)).build());
                 };
 
                 try {
@@ -773,7 +777,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 }
             } else {
                 // no do-action means, we are done after onEnter()
-                triggerFirst(Event.newBuilder().withName(FSMEvents.DO_ACTION_DONE.getName()).withLocal(true).build());
+                triggerFirst(Event.newBuilder().withName(FSMEvents.DO_ACTION_DONE.getName()).withLocal(true)
+                        .withArgs(newState.getName()+":"+System.identityHashCode(newState)).build());
             }
         } catch(Exception ex) {
             handleExecutionError(evt, oldState, newState, ex);
@@ -855,6 +860,20 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     }
 
     private boolean guardMatches(Transition consumer, Event evt) {
+
+        if(FSMEvents.DO_ACTION_DONE.getName().equals(consumer.getTrigger())) {
+
+            return checkGuardOfStateEvents(consumer, evt);
+        }
+
+        if(FSMEvents.STATE_DONE.getName().equals(consumer.getTrigger())) {
+            return checkGuardOfStateEvents(consumer, evt);
+        }
+
+        if(FSMEvents.FINAL_STATE.getName().equals(consumer.getTrigger())) {
+            return checkGuardOfStateEvents(consumer, evt);
+        }
+
         if(consumer.getGuard()==null) return true;
         try {
             return consumer.getGuard().test(consumer, evt);
@@ -863,6 +882,18 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         }
 
         return false;
+    }
+
+    private boolean checkGuardOfStateEvents(Transition consumer, Event evt) {
+        boolean guard = consumer.getGuard()==null;
+        try {
+            if(!guard) guard = consumer.getGuard().test(consumer, evt);
+        } catch (Exception ex) {
+            handleExecutionError(evt, consumer.getSource(), consumer.getTarget(), ex);
+        }
+
+        return guard && Objects.equals(evt.getArgs().get(0),
+                consumer.getSource().getName()+":"+System.identityHashCode(consumer.getSource()));
     }
 
     private boolean defers(State s, Event evt) {

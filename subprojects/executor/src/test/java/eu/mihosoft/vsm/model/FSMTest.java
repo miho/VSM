@@ -2349,7 +2349,7 @@ public class FSMTest {
                 f.complete(null);
                 System.out.println("EV3 consumed");
             });
-            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+            f.orTimeout(3000, TimeUnit.MILLISECONDS).join();
         }
 
         executor.stop();
