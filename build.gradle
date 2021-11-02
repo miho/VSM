@@ -32,7 +32,9 @@ allprojects {
     test {
         // jvmArgs=['--enable-preview']
         failFast = false
-        testLogging.showStandardStreams = true
+        testLogging {
+            events "passed", "skipped", "failed", "standardOut", "standardError"
+        }
     }
 
     license {
