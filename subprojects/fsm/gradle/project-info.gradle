@@ -16,7 +16,7 @@ ext.publishing.bintray.name          = project.name
 
 ext.publishing.desc                  = 'State Machine Model based on VMF (VRL Modeling Framework).'
 ext.publishing.license               = 'Apache-2.0'
-ext.publishing.licenseUrl            = 'https://github.com/miho/VMS/blob/master/LICENSE'
+ext.publishing.licenseUrl            = 'https://github.com/miho/VSM/blob/master/LICENSE'
 ext.publishing.labels                = ['state machines','state charts','hsm', 'vmf', 'modeling', 'data model', 'vrl', 'modeling framework']
 ext.publishing.websiteUrl            = 'https://github.com/miho/VSM'
 ext.publishing.issueTrackerUrl       = 'https://github.com/miho/VSM/issues'
