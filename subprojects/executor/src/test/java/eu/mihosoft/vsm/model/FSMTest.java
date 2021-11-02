@@ -2172,7 +2172,7 @@ public class FSMTest {
                 f.complete(null);
                 System.out.println("EV3 consumed");
             });
-            f.orTimeout(10000, TimeUnit.MILLISECONDS).join();
+            f.orTimeout(10000*numberOFChildren, TimeUnit.MILLISECONDS).join();
         }
 
         executor.stop();
@@ -2349,7 +2349,7 @@ public class FSMTest {
                 f.complete(null);
                 System.out.println("EV3 consumed");
             });
-            f.orTimeout(10000, TimeUnit.MILLISECONDS).join();
+            f.orTimeout(10000*numberOFChildren, TimeUnit.MILLISECONDS).join();
         }
 
         executor.stop();
