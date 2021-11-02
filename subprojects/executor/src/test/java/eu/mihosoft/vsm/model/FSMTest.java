@@ -216,7 +216,7 @@ public class FSMTest {
 
             var actualEvtList = new ArrayList<String>();
 
-            FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
             Executor executor = Executor.newInstance(fsm, MODE);
 //        executor.startAsync();
@@ -279,7 +279,7 @@ public class FSMTest {
 
             var actualEvtList = new ArrayList<String>();
 
-            FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
             Executor executor = Executor.newInstance(fsm, MODE);
 
@@ -333,7 +333,7 @@ public class FSMTest {
 
             var actualEvtList = new ArrayList<String>();
 
-            FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
             Executor executor = Executor.newInstance(fsm, MODE);
             executor.startAsync();
@@ -387,7 +387,7 @@ public class FSMTest {
 
             var actualEvtList = new ArrayList<String>();
 
-            FSM fsm = createNestedWithOrthogonal(actualEvtList);
+            FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
             Executor executor = Executor.newInstance(fsm, MODE);
             executor.startAsync();
@@ -432,7 +432,75 @@ public class FSMTest {
         }
     }
 
-    private static FSM createNestedWithOrthogonal(List<String> enterExitListOrig) {
+    @Test
+    public void nestedOrthogonalWithDoActionInterruptViaFinalStateAsyncTest() throws InterruptedException {
+
+        // if 'final-state' from nested is emitted, we can interrupt the do-action if we define a
+        // transition with trigger 'final-state'
+
+        for(int i = 0; i < NUM_ITERATIONS_LARGE_TESTS; i++) {
+
+            var actualEvtList = new ArrayList<String>();
+
+            FSM fsm = createNestedWithOrthogonal(actualEvtList, true);
+
+            Executor executor = Executor.newInstance(fsm, MODE);
+            executor.startAsync();
+
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent2", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+            executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
+
+            Thread.sleep(200);
+            executor.stop();
+
+            var expectedEvtList = Arrays.asList(
+                "enter state a",                   // <- fsm:init
+                "exit state a",                    // <- myEvent 1
+                "enter state b",                   //
+                "exit state b",                    // <- myEvent 2
+                "enter state c",                   //
+//                "enter do-action-in-state-c",      // test without enter do-action-in-state-c, because position may vary
+                "enter state ca1",                 //
+                "enter state ca2",                 //
+                "exit state ca2",                  // <- myEvent 2
+                "enter state cb2",                 //
+                "exit state cb2",                  // (fsm reached final state)
+                "exit state ca1",                  // <- myEvent 1
+                "enter state cb1",                 //
+                "exit state cb1",                  // (fsm reached final state)
+                "interrupt do-action-in-state-c",  // <- myEvent 1
+                "exit do-action-in-state-c",       //
+                "exit state c",                    //
+                "enter state a"                    //
+            );
+
+            // test without enter do-action-in-state-c, because position may vary
+            actualEvtList.remove("enter do-action-in-state-c");
+
+            // A better way to verify correct execution is to trace child FSMs aka regions individually.
+            // But in this configuration we cannot test for a specific sequence.
+            Assert.assertEquals(expectedEvtList.size(), actualEvtList.size());
+        }
+    }
+
+    private static FSM createNestedWithOrthogonal(List<String> enterExitListOrig, boolean finalStateInNested) {
+
+        //        +------+             +----------------------+
+        //        |      |    EV1      | C |                  |
+        //        |  A   |<------------|---/                  |
+        //        |      |    or       | +----+  EV1  +----+  |
+        //        |      | final-state | | CA |------>| CB |  | <--- CB is final state
+        //        +------+             | +----+       +----+  |
+        //           |                 |                      |
+        //           | EV1             |--------------------->|
+        //           v                 |                      |
+        //        +------+             | +----+  EV1  +----+  |
+        //        |      |     EV2     | | CA |------>| CB |  | <--- CB is final state
+        //        |  B   |------------>| +----+       +----+  |
+        //        |      |             |                      |
+        //        +------+             +----------------------+
 
         final var enterExitList = Collections.synchronizedList(enterExitListOrig);
 
@@ -553,7 +621,9 @@ public class FSMTest {
                         Transition.newBuilder()
                                 .withSource(stateC)
                                 .withTarget(stateA)
-                                .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.DO_ACTION_DONE.getName())
+                                .withTrigger(finalStateInNested
+                                    ?eu.mihosoft.vsm.model.Executor.FSMEvents.FINAL_STATE.getName()
+                                    :eu.mihosoft.vsm.model.Executor.FSMEvents.DO_ACTION_DONE.getName())
                                 .build()
                 )
                 .build();
@@ -2083,7 +2153,185 @@ public class FSMTest {
             var f = new CompletableFuture<Void>();
             System.out.println("> triggering event 1");
             executor.trigger("EV1", (e, t) -> {
-                System.out.println("EV1 consumed for inner by state " + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName());
+                System.out.println("EV1 consumed for inner by state "
+                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName());
+                consumeCount.incrementAndGet();
+                f.complete(null);
+            });
+            f.orTimeout(1000*numberOFChildren, TimeUnit.MILLISECONDS).join();
+        }
+
+        {
+            System.out.println("> triggering event 3");
+            var f = new CompletableFuture<Void>();
+            executor.trigger("EV3", (e, t) -> {
+                f.complete(null);
+                System.out.println("EV3 consumed");
+            });
+            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+        }
+
+        executor.stop();
+
+        Assert.assertEquals(
+            "EV1 should be consumed by each region R1..R"+numberOFChildren,
+            numberOFChildren, consumeCount.get()
+        );
+
+    }
+
+
+    @Test
+    public void nestedFSM() throws InterruptedException, ExecutionException {
+
+        //                +------------------+
+        //      +---------+ S3|          R1  |
+        //      |    EV3  |---/              |
+        //      |         |                  |
+        //      |         |  +---+ EV1 +---+ |
+        //   +--v-+       |  |S1i|---->|S2i| | <------- S2i is non-final state
+        //   | S1 |       |  +---+     +---+ |
+        //   +----+       |                  |
+        //      |         +------------------+
+        //      |         |       ...        |
+        //   EV1|         +------------------+
+        //      |         |              RN  |
+        //      |         |                  |
+        //   +--v-+  EV2  |  +---+ EV1 +---+ |
+        //   | S2 +------->  |S1i|---->|S2i| | <------- S2i is non-final state
+        //   +----+       |  +---+     +---+ |
+        //                |                  |
+        //                +------------------+
+
+        // - does each region (R1, R2) consume the event EV1?
+
+        var s1EnteredF = new CompletableFuture<Void>();
+        State s1 = State.newBuilder()
+            .withName("s1")
+            .withOnEntryAction((s, e) -> {
+                System.out.println("entered state " + s.getName());
+                s1EnteredF.complete(null);
+            })
+            .build();
+
+        State s2 = State.newBuilder()
+            .withName("s2")
+            .withOnEntryAction((s, e) -> {
+                System.out.println("entered state " + s.getName());
+            })
+            .build();
+
+        Function<Integer, FSM> fsmCreator = (i) -> {
+            State s1i = State.newBuilder()
+                .withName("s1i")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("cfsm" + i + " entered state " + s.getName());
+                    sleepRandom(0, 250);
+                })
+                .build();
+
+            State s2i = State.newBuilder()
+                .withName("s2i")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("cfsm" + i + " entered state " + s.getName());
+                    sleepRandom(0, 250);
+                })
+                .build();
+
+            Transition s1s2i = Transition.newBuilder()
+                .withTrigger("EV1")
+                .withSource(s1i)
+                .withTarget(s2i)
+                .build();
+
+            FSM fsmChild = FSM.newBuilder()
+                .withName("Child " + i)
+                .withInitialState(s1i)
+                .withOwnedState(s1i, s2i)
+                .withTransitions(s1s2i)
+                .withFinalState(s2i)
+                .build();
+
+            return fsmChild;
+        };
+
+        int numberOFChildren = 10;
+
+        var childFSMs = IntStream.range(1, numberOFChildren+1)
+            .mapToObj(i->fsmCreator.apply(i)).collect(Collectors.toList());
+
+        var s3EnteredF = new CompletableFuture<Void>();
+        FSMState s3 = FSMState.newBuilder()
+            .withName("s3")
+            .withFSMs(childFSMs)
+            .withOnEntryAction((s, e) -> {
+                System.out.println("entering state " + s.getName());
+                s3EnteredF.complete(null);
+            })
+            .build();
+
+        Transition s1s2 = Transition.newBuilder()
+            .withTrigger("EV1")
+            .withSource(s1)
+            .withTarget(s2)
+            .build();
+
+        Transition s2s3 = Transition.newBuilder()
+            .withTrigger("EV2")
+            .withSource(s2)
+            .withTarget(s3)
+            .build();
+
+        Transition s3s1 = Transition.newBuilder()
+            .withTrigger("EV3")
+            .withSource(s3)
+            .withTarget(s1)
+            .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
+            .build();
+
+        FSM fsm = FSM.newBuilder()
+            .withName("FSM")
+            .withInitialState(s1)
+            .withOwnedState(s1, s2, s3)
+            .withTransitions(s1s2, s1s2, s2s3, s3s1)
+            .withVerbose(true)
+            .build();
+
+        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.PARALLEL_REGIONS);
+
+        executor.startAsync();
+
+        s1EnteredF.join();
+
+        {
+            var f = new CompletableFuture<Void>();
+            System.out.println("> triggering event 1");
+            executor.trigger("EV1", (e, t) -> {
+                System.out.println("myEvent1 consumed");
+                f.complete(null);
+            });
+            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+        }
+
+        {
+            var f = new CompletableFuture<Void>();
+            System.out.println("> triggering event 2");
+            executor.trigger("EV2", (e, t) -> {
+                System.out.println("EV2 consumed");
+                f.complete(null);
+            });
+            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+        }
+
+        s3EnteredF.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+
+        var consumeCount = new AtomicInteger();
+        {
+            var f = new CompletableFuture<Void>();
+            System.out.println("> triggering event 1");
+            executor.trigger("EV1", (e, t) -> {
+                System.out.println("EV1 consumed for inner by state "
+                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName());
                 consumeCount.incrementAndGet();
                 f.complete(null);
             });
