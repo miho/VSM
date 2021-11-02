@@ -1931,11 +1931,15 @@ public class FSMTest {
             .withTarget(s3)
             .build();
 
+        var s3s1F = new CompletableFuture<>();
         Transition s3s1 = Transition.newBuilder()
             .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
             .withSource(s3)
             .withTarget(s1)
-            .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
+            .withActions((t, e) -> {
+                System.out.println("transitioning from S3 to S1");
+                s3s1F.complete(null);
+            })
             .build();
 
         FSM fsm = FSM.newBuilder()
@@ -1976,14 +1980,11 @@ public class FSMTest {
 
        var consumeCount = new AtomicInteger();
         {
-            var f = new CompletableFuture<Void>();
             System.out.println("> triggering event 1");
             executor.trigger("EV1", (e, t) -> {
                 System.out.println("EV1 consumed for inner by state " + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName());
                 consumeCount.incrementAndGet();
-                f.complete(null);
             });
-            f.orTimeout(1000*numberOFChildren, TimeUnit.MILLISECONDS).join();
         }
 
 //        {
@@ -1995,6 +1996,8 @@ public class FSMTest {
 //            });
 //            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
 //        }
+
+        s3s1F.orTimeout(1000*numberOFChildren, TimeUnit.MILLISECONDS).join();
 
         executor.stop();
 
