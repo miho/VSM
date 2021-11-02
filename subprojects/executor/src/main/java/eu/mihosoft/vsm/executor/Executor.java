@@ -862,7 +862,6 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     private boolean guardMatches(Transition consumer, Event evt) {
 
         if(FSMEvents.DO_ACTION_DONE.getName().equals(consumer.getTrigger())) {
-
             return checkGuardOfStateEvents(consumer, evt);
         }
 
