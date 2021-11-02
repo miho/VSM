@@ -27,9 +27,9 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     private final AsyncExecutor.ExecutionMode mode;
 
     private static final long MAX_EVT_CONSUMED_ACTION_TIMEOUT = 1000 /*ms*/;
-    private static final long MAX_ENTER_ACTION_TIMEOUT = 1000 /*ms*/;
-    private static final long MAX_EXIT_ACTION_TIMEOUT = 1000 /*ms*/;
-    private static final long MAX_TRANSITION_ACTION_TIMEOUT = 1000 /*ms*/;
+    private static final long MAX_ENTER_ACTION_TIMEOUT        = 1000 /*ms*/;
+    private static final long MAX_EXIT_ACTION_TIMEOUT         = 1000 /*ms*/;
+    private static final long MAX_TRANSITION_ACTION_TIMEOUT   = 1000 /*ms*/;
 
     private static Optional<Executor> getLCA(Executor a, Executor b) {
         int start = Math.min(a.pathToRoot.size(), b.pathToRoot.size());
@@ -382,14 +382,17 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         return consumed;
     }
 
-    private void processRegions(Iterator<Event> iter, Event evt,
+    private void processRegions(Iterator<Event> iter, Event event,
                                 FSMState currentState,
                                 AtomicBoolean consumedParam,
                                 AtomicBoolean removedParam) {
         FSMState fsmState = currentState;
         var threads = new ArrayList<Thread>();
 
+        var consumed = new AtomicBoolean();
         for (FSM childFSM : fsmState.getFSMs()) {
+            final var evt = event.clone();
+            evt.setConsumed(false);
             Runnable r = () -> {
 
                     if (evt != null && !evt.isLocal()) {
@@ -398,11 +401,14 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                         childFSM.getExecutor().trigger(evt);
                     }
 
-                    // process event of non local and potential internal events
+                    // process event of non-local and potential internal events
                     childFSM.getExecutor().processRemainingEvents();
 
                     eventLock.lock();
                     try {
+                        if(evt.isConsumed()) {
+                            consumed.set(true);
+                        }
                         // if we consumed it then remove it
                         if (evt != null && !removedParam.get() && evt.isConsumed()) {
                             iter.remove();
@@ -431,10 +437,10 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             }
         });
 
-        consumedParam.set(evt.isConsumed());
+        consumedParam.set(consumed.get());
 
-        if(evt!=null&&evt.isConsumed()) {
-            log(" -> consumed " + evt.getName());
+        if(event!=null&&consumedParam.get()) {
+            log(" -> consumed " + event.getName());
         }
 
         boolean allMatch = fsmState.getFSMs().stream()
