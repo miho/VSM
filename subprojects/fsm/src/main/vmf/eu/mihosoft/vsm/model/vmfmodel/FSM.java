@@ -232,6 +232,7 @@ interface Event extends WithName, WithArgs {
             " Local events are not propagated to children of the state machine.")
     boolean isLocal();
     @Doc("Point in time when the event was created/triggerred.")
+    @DefaultValue("-1")
     long getTimeStamp();
 }
 

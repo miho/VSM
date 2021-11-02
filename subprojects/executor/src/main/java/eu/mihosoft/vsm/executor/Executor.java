@@ -24,6 +24,7 @@ package eu.mihosoft.vsm.executor;
 
 import eu.mihosoft.vsm.model.*;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -91,7 +92,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
         Event event = Event.newBuilder().withName(evt).withArgs(args)
                 .withAction(onConsumed)
-                .withTimeStamp(System.nanoTime())
+                .withTimeStamp(System.currentTimeMillis())
                 .build();
 
         trigger(event);
@@ -102,7 +103,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
         if(event.isConsumed()) throw new IllegalArgumentException("Cannot trigger consumed event: " + event.getName());
 
-        if(event.getTimeStamp()==0) event.setTimeStamp(System.nanoTime());
+        if(event.getTimeStamp()<=0) event.setTimeStamp(System.currentTimeMillis());
         evtQueue.add(event);
 
         if(executionThread!=null) {
@@ -117,7 +118,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
         if(event.isConsumed()) throw new IllegalArgumentException("Cannot trigger consumed event: " + event.getName());
 
-        if(event.getTimeStamp()==0) event.setTimeStamp(System.nanoTime());
+        if(event.getTimeStamp()<=0) event.setTimeStamp(System.currentTimeMillis());
         evtQueue.addFirst(event);
 
         if(executionThread!=null) {
@@ -185,6 +186,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     boolean firedFinalState   = false;
     boolean firedDoActionDone = false;
+    boolean firedStateDone    = false;
 
     public boolean processRemainingEvents() {
 
@@ -199,6 +201,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             if(getCaller().getCurrentState()==null) {
                 firedDoActionDone = false;
                 firedFinalState   = false;
+                firedStateDone    = false;
                 performStateTransition(
                         Event.newBuilder().withName(FSMEvents.INIT.getName()).build(),
                         null,
@@ -230,12 +233,14 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                         .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
                 if(allMatch && !firedFinalState) {
+                    log("> triggering final-state, currently in state " + prevState.getName());
                     triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
                     firedFinalState = true;
+                    log(" -> final state reached via: "
+                            + fsmState.getFSMs().stream().map(cfsm->cfsm.getName()).collect(Collectors.toList()));
                 }
             }
         }
-
 
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
@@ -249,14 +254,23 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 if(stateChanged) {
                     firedDoActionDone = false;
                     firedFinalState   = false;
+                    firedStateDone    = false;
                 }
 
                 prevState = currentState;
 
                 if (getCaller().isVerbose()) {
-                    log("> try-consume: " + evt.getName() +
-                            (evt.isDeferred() ? " (previously deferred)" : "") + ", fsm: " + level(getCaller()));
-                    log("  -> in state: " + level(getCaller()) + ":" + (currentState==null?"<undefined>":currentState.getName()));
+                    if(getCaller().isVerbose()) {
+                        log("> try-consume: " + evt.getName() + ", timestamp: "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").
+                            format(new Date(evt.getTimeStamp()))
+                            + ", " + (evt.isDeferred() ? " (previously deferred), " : "") + "fsm: "
+                            + level(getCaller())
+                        );
+                        log("  -> in state: " + level(getCaller()) + ":"
+                            + (currentState == null ? "<undefined>" : currentState.getName())
+                        );
+                    }
                 }
 
                 // handle errors
@@ -277,15 +291,20 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 // before we try to consume it on the current level.
                 AtomicBoolean consumedParam = new AtomicBoolean(consumed);
                 AtomicBoolean removedParam  = new AtomicBoolean(removed);
-                if (currentState instanceof FSMState) {
+                boolean isFSMState = (currentState instanceof FSMState);
+                if (isFSMState) {
                     processRegions(iter, evt, (FSMState) currentState, consumedParam, removedParam);
                     removed = removedParam.get();
                     consumed = consumedParam.get();
                 } else {
-                    if(!firedFinalState) {
-                        triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
-                        firedFinalState = true;
-                    }
+//                    if(!firedFinalState) {
+//                        triggerFirst(Event.newBuilder()
+//                            .withName(FSMEvents.FINAL_STATE.getName())
+//                            .withLocal(true).build());
+//                        log("> triggering final-state, currently in state " + currentState.getName());
+//                        log(" -> final state reached via: current state (no children available)");
+//                        firedFinalState = true;
+//                    }
                 }
 
                 if(FSMEvents.FINAL_STATE.getName().equals(evt.getName())) {
@@ -296,8 +315,10 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                     firedDoActionDone = true;
                 }
 
-                if(!FSMEvents.STATE_DONE.getName().equals(evt.getName()) && firedFinalState && firedDoActionDone) {
-                    trigger(Event.newBuilder().withName(FSMEvents.STATE_DONE.getName()).withLocal(true).build());
+                if(!firedStateDone && (firedFinalState || !isFSMState) && firedDoActionDone) {
+                    log("> triggering state-done, currently in state " + currentState.getName());
+                    triggerFirst(Event.newBuilder().withName(FSMEvents.STATE_DONE.getName()).withLocal(true).build());
+                    firedStateDone = true;
                 }
 
                 // children consumed event
@@ -331,11 +352,19 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                     log("  -> found consumer: " + level(getCaller()) + ":" + consumer.getTarget().getName());
                     log("     on-thread:      " + Thread.currentThread().getName());
 
-                    performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
+                    {
+                        prevState = currentState;
+                        performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
+                        stateChanged = prevState != getCaller().getCurrentState();
+                        if (stateChanged) {
+                            firedDoActionDone = false;
+                            firedFinalState = false;
+                            firedStateDone = false;
+                        }
+                    }
 
                     if (getCaller().getFinalState().contains(getCaller().getCurrentState())) {
                         log("  -> final state reached. stopping.");
-                        System.out.println("  -> final state reached. stopping.");
                         exitDoActionOfOldState(evt, getCaller().getCurrentState(), null);
                         getCaller().setRunning(false);
                     }
@@ -469,8 +498,11 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
 
         if(allMatch && !firedFinalState) {
+            log("> triggering final-state, currently in state " + currentState.getName());
             triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true).build());
             firedFinalState = true;
+            log(" -> final state reached via: "
+                + fsmState.getFSMs().stream().map(cfsm->cfsm.getName()).collect(Collectors.toList()));
         }
     }
 
