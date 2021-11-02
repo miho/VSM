@@ -488,13 +488,14 @@ public class FSMTest {
     private static FSM createNestedWithOrthogonal(List<String> enterExitListOrig, boolean finalStateInNested) {
 
         //        +------+             +----------------------+
-        //        |      |    EV1      | C |                  |
+        //        |      |    EV1      | C |               R1 |
         //        |  A   |<------------|---/                  |
         //        |      |    or       | +----+  EV1  +----+  |
         //        |      | final-state | | CA |------>| CB |  | <--- CB is final state
         //        +------+             | +----+       +----+  |
         //           |                 |                      |
         //           | EV1             |--------------------->|
+        //           |                 |                   R2 |
         //           v                 |                      |
         //        +------+             | +----+  EV1  +----+  |
         //        |      |     EV2     | | CA |------>| CB |  | <--- CB is final state
