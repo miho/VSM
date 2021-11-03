@@ -2135,7 +2135,8 @@ public class FSMTest {
             var f = new CompletableFuture<Void>();
             System.out.println("> triggering event 1");
             executor.trigger("EV1", (e, t) -> {
-                System.out.println("myEvent1 consumed");
+                System.out.println("EV1 consumed "
+                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                 f.complete(null);
             });
             f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
@@ -2145,7 +2146,9 @@ public class FSMTest {
             var f = new CompletableFuture<Void>();
             System.out.println("> triggering event 2");
             executor.trigger("EV2", (e, t) -> {
-                System.out.println("EV2 consumed");
+                System.out.println("EV2 consumed "
+                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                );
                 f.complete(null);
             });
             f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
@@ -2159,7 +2162,9 @@ public class FSMTest {
             System.out.println("> triggering event 1");
             executor.trigger("EV1", (e, t) -> {
                 System.out.println("EV1 consumed for inner by state "
-                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName());
+                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
+                    + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                );
                 consumeCount.incrementAndGet();
                 f.complete(null);
             });
@@ -2171,7 +2176,9 @@ public class FSMTest {
             var f = new CompletableFuture<Void>();
             executor.trigger("EV3", (e, t) -> {
                 f.complete(null);
-                System.out.println("EV3 consumed");
+                System.out.println("EV3 consumed"
+                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                );
             });
             f.orTimeout(10000*numberOFChildren, TimeUnit.MILLISECONDS).join();
         }
@@ -2340,7 +2347,7 @@ public class FSMTest {
             System.out.println("> triggering event 1");
             executor.trigger("EV1", (e, t) -> {
                 System.out.println("EV1 consumed for inner by state "
-                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
+                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName() + " "
                     + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                 );
                 consumeCount.incrementAndGet();
