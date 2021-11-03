@@ -1958,7 +1958,7 @@ public class FSMTest {
                     ?AsyncExecutor.ExecutionMode.SERIAL_REGIONS
                     :AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
-            System.out.println("> running executor with " + mode.name());
+            System.out.println("> running executor with " + mode.name() + ", n-child-fsms: " + numberOFChildren);
             Executor executor = Executor.newInstance(fsm, mode);
 
             executor.startAsync();
@@ -2140,7 +2140,7 @@ public class FSMTest {
                     ?AsyncExecutor.ExecutionMode.SERIAL_REGIONS
                     :AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
-            System.out.println("> running executor with " + mode.name());
+            System.out.println("> running executor with " + mode.name() + ", n-child-fsms: " + numberOFChildren);
             Executor executor = Executor.newInstance(fsm, mode);
 
             executor.startAsync();
@@ -2331,7 +2331,7 @@ public class FSMTest {
                     ?AsyncExecutor.ExecutionMode.SERIAL_REGIONS
                     :AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
-            System.out.println("> running executor with " + mode.name());
+            System.out.println("> running executor with " + mode.name() + ", n-child-fsms: " + numberOFChildren);
             Executor executor = Executor.newInstance(fsm, mode);
 
             executor.startAsync();
