@@ -1831,7 +1831,7 @@ public class FSMTest {
 
     }
 
-    @Test(timeout = 25000)
+    @Test(timeout = 100_000)
     public void nestedFSMEventConsumedActionTest() throws InterruptedException, ExecutionException {
         
         //                +------------------+
@@ -1855,151 +1855,163 @@ public class FSMTest {
 
         // - does each region (R1, R2) consume the event EV1?
 
-        var s1EnteredF = new CompletableFuture<Void>();
-        State s1 = State.newBuilder()
-            .withName("s1")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName());
-                s1EnteredF.complete(null);
-            })
-            .build();
+        for(int idx = 0; idx < NUM_ITERATIONS_SMALL_TESTS; idx++) {
 
-        State s2 = State.newBuilder()
-            .withName("s2")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName());
-            })
-            .build();
+            var s1EnteredF = new CompletableFuture<Void>();
+            State s1 = State.newBuilder()
+                    .withName("s1")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                        s1EnteredF.complete(null);
+                    })
+                    .build();
 
-        Function<Integer, FSM> fsmCreator = (i) -> {
-            State s1i = State.newBuilder()
-                .withName("s1i")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName());
-                    sleepRandom(0, 250);
-                })
-                .build();
+            State s2 = State.newBuilder()
+                    .withName("s2")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                    })
+                    .build();
 
-            State s2i = State.newBuilder()
-                .withName("s2i")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName());
-                    sleepRandom(0, 250);
-                })
-                .build();
+            Function<Integer, FSM> fsmCreator = (i) -> {
+                State s1i = State.newBuilder()
+                        .withName("s1i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
-            Transition s1s2i = Transition.newBuilder()
-                .withTrigger("EV1")
-                .withSource(s1i)
-                .withTarget(s2i)
-                .build();
+                State s2i = State.newBuilder()
+                        .withName("s2i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
-            FSM fsmChild = FSM.newBuilder()
-                .withName("Child " + i)
-                .withInitialState(s1i)
-                .withOwnedState(s1i, s2i)
-                .withTransitions(s1s2i)
-                .withFinalState(s2i)
-                .build();
+                Transition s1s2i = Transition.newBuilder()
+                        .withTrigger("EV1")
+                        .withSource(s1i)
+                        .withTarget(s2i)
+                        .build();
 
-            return fsmChild;
-        };
+                FSM fsmChild = FSM.newBuilder()
+                        .withName("Child " + i)
+                        .withInitialState(s1i)
+                        .withOwnedState(s1i, s2i)
+                        .withTransitions(s1s2i)
+                        .withFinalState(s2i)
+                        .build();
 
-        int numberOFChildren = 10;
+                return fsmChild;
+            };
 
-        var childFSMs = IntStream.range(1, numberOFChildren+1)
-            .mapToObj(i->fsmCreator.apply(i)).collect(Collectors.toList());
+            int numberOFChildren = ThreadLocalRandom.current().nextInt(30) + 1;
 
-        var s3EnteredF = new CompletableFuture<Void>();
-        FSMState s3 = FSMState.newBuilder()
-            .withName("s3")
-            .withFSMs(childFSMs)
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entering state " + s.getName());
-                s3EnteredF.complete(null);
-            })
-            .build();
+            var childFSMs = IntStream.range(1, numberOFChildren + 1)
+                    .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
 
-        Transition s1s2 = Transition.newBuilder()
-            .withTrigger("EV1")
-            .withSource(s1)
-            .withTarget(s2)
-            .build();
+            var s3EnteredF = new CompletableFuture<Void>();
+            FSMState s3 = FSMState.newBuilder()
+                    .withName("s3")
+                    .withFSMs(childFSMs)
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entering state " + s.getName());
+                        s3EnteredF.complete(null);
+                    })
+                    .build();
 
-        Transition s2s3 = Transition.newBuilder()
-            .withTrigger("EV2")
-            .withSource(s2)
-            .withTarget(s3)
-            .build();
+            Transition s1s2 = Transition.newBuilder()
+                    .withTrigger("EV1")
+                    .withSource(s1)
+                    .withTarget(s2)
+                    .build();
 
-        var s3s1F = new CompletableFuture<>();
-        Transition s3s1 = Transition.newBuilder()
-            .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
-            .withSource(s3)
-            .withTarget(s1)
-            .withActions((t, e) -> {
-                System.out.println("transitioning from S3 to S1");
-                s3s1F.complete(null);
-            })
-            .build();
+            Transition s2s3 = Transition.newBuilder()
+                    .withTrigger("EV2")
+                    .withSource(s2)
+                    .withTarget(s3)
+                    .build();
 
-        FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withInitialState(s1)
-            .withOwnedState(s1, s2, s3)
-            .withTransitions(s1s2, s1s2, s2s3, s3s1)
-            .withVerbose(true)
-            .build();
+            var s3s1F = new CompletableFuture<>();
+            Transition s3s1 = Transition.newBuilder()
+                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
+                    .withSource(s3)
+                    .withTarget(s1)
+                    .withActions((t, e) -> {
+                        System.out.println("transitioning from S3 to S1");
+                        s3s1F.complete(null);
+                    })
+                    .build();
 
-        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.PARALLEL_REGIONS);
+            FSM fsm = FSM.newBuilder()
+                    .withName("FSM")
+                    .withInitialState(s1)
+                    .withOwnedState(s1, s2, s3)
+                    .withTransitions(s1s2, s1s2, s2s3, s3s1)
+                    .withVerbose(true)
+                    .build();
 
-        executor.startAsync();
 
-        s1EnteredF.join();
+            var mode = idx%2==0
+                    ?AsyncExecutor.ExecutionMode.SERIAL_REGIONS
+                    :AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 1");
-            executor.trigger("EV1", (e, t) -> {
-                System.out.println("myEvent1 consumed");
-                f.complete(null);
-            });
-            f.join();
+            System.out.println("> running executor with " + mode.name());
+            Executor executor = Executor.newInstance(fsm, mode);
+
+            executor.startAsync();
+
+            s1EnteredF.join();
+
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 1");
+                executor.trigger("EV1", (e, t) -> {
+                    System.out.println("myEvent1 consumed");
+                    f.complete(null);
+                });
+                f.join();
+            }
+
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 2");
+                executor.trigger("EV2", (e, t) -> {
+                    System.out.println("EV2 consumed");
+                    f.complete(null);
+                });
+                f.join();
+            }
+
+            s3EnteredF.join();
+
+            var consumeCount = new AtomicInteger();
+            {
+                System.out.println("> triggering event 1");
+                executor.trigger("EV1", (e, t) -> {
+                    System.out.println("EV1 consumed for inner by state "
+                            + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
+                    );
+                    consumeCount.incrementAndGet();
+                });
+            }
+
+            s3s1F.join();
+
+            executor.stop();
+
+            Assert.assertEquals(
+                    "EV1 should be consumed by each region R1..R" + numberOFChildren,
+                    numberOFChildren, consumeCount.get()
+            );
+
         }
-
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 2");
-            executor.trigger("EV2", (e, t) -> {
-                System.out.println("EV2 consumed");
-                f.complete(null);
-            });
-            f.join();
-        }
-
-        s3EnteredF.join();
-
-       var consumeCount = new AtomicInteger();
-        {
-            System.out.println("> triggering event 1");
-            executor.trigger("EV1", (e, t) -> {
-                System.out.println("EV1 consumed for inner by state " + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName());
-                consumeCount.incrementAndGet();
-            });
-        }
-
-        s3s1F.join();
-
-        executor.stop();
-
-        Assert.assertEquals(
-            "EV1 should be consumed by each region R1..R"+numberOFChildren,
-              numberOFChildren, consumeCount.get()
-        );
 
     }
 
-    @Test(timeout = 25000)
+    @Test(timeout = 100_000)
     public void nestedFSMEventConsumedActionTest2() throws InterruptedException, ExecutionException {
 
         //                +------------------+
@@ -2023,174 +2035,181 @@ public class FSMTest {
 
         // - does each region (R1, R2) consume the event EV1?
 
-        var s1EnteredF = new CompletableFuture<Void>();
-        State s1 = State.newBuilder()
-            .withName("s1")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName()
-                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
-                s1EnteredF.complete(null);
-            })
-            .build();
+        for(int idx = 0; idx < NUM_ITERATIONS_SMALL_TESTS;idx++) {
 
-        State s2 = State.newBuilder()
-            .withName("s2")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName()
-                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-            })
-            .build();
+            var s1EnteredF = new CompletableFuture<Void>();
+            State s1 = State.newBuilder()
+                    .withName("s1")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName()
+                                + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                        s1EnteredF.complete(null);
+                    })
+                    .build();
 
-        Function<Integer, FSM> fsmCreator = (i) -> {
-            State s1i = State.newBuilder()
-                .withName("s1i")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName()
-                            + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+            State s2 = State.newBuilder()
+                    .withName("s2")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName()
+                                + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                        );
+                    })
+                    .build();
+
+            Function<Integer, FSM> fsmCreator = (i) -> {
+                State s1i = State.newBuilder()
+                        .withName("s1i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName()
+                                    + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            );
+                            sleepRandom(0, 250);
+                        })
+                        .build();
+
+                State s2i = State.newBuilder()
+                        .withName("s2i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName()
+                                    + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                            sleepRandom(0, 250);
+                        })
+                        .build();
+
+                Transition s1s2i = Transition.newBuilder()
+                        .withTrigger("EV1")
+                        .withSource(s1i)
+                        .withTarget(s2i)
+                        .build();
+
+                FSM fsmChild = FSM.newBuilder()
+                        .withName("Child " + i)
+                        .withInitialState(s1i)
+                        .withOwnedState(s1i, s2i)
+                        .withTransitions(s1s2i)
+                        .withFinalState(s2i)
+                        .build();
+
+                return fsmChild;
+            };
+
+            int numberOFChildren = ThreadLocalRandom.current().nextInt(30) + 1;
+
+            var childFSMs = IntStream.range(1, numberOFChildren + 1)
+                    .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
+
+            var s3EnteredF = new CompletableFuture<Void>();
+            FSMState s3 = FSMState.newBuilder()
+                    .withName("s3")
+                    .withFSMs(childFSMs)
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entering state " + s.getName()
+                                + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                        s3EnteredF.complete(null);
+                    })
+                    .build();
+
+            Transition s1s2 = Transition.newBuilder()
+                    .withTrigger("EV1")
+                    .withSource(s1)
+                    .withTarget(s2)
+                    .build();
+
+            Transition s2s3 = Transition.newBuilder()
+                    .withTrigger("EV2")
+                    .withSource(s2)
+                    .withTarget(s3)
+                    .build();
+
+            Transition s3s1 = Transition.newBuilder()
+                    .withTrigger("EV3")
+                    .withSource(s3)
+                    .withTarget(s1)
+                    .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
+                    .build();
+
+            FSM fsm = FSM.newBuilder()
+                    .withName("FSM")
+                    .withInitialState(s1)
+                    .withOwnedState(s1, s2, s3)
+                    .withTransitions(s1s2, s1s2, s2s3, s3s1)
+                    .withVerbose(true)
+                    .build();
+
+            var mode = idx%2==0
+                    ?AsyncExecutor.ExecutionMode.SERIAL_REGIONS
+                    :AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
+
+            System.out.println("> running executor with " + mode.name());
+            Executor executor = Executor.newInstance(fsm, mode);
+
+            executor.startAsync();
+
+            s1EnteredF.join();
+
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 1");
+                executor.trigger("EV1", (e, t) -> {
+                    System.out.println("EV1 consumed "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                    f.complete(null);
+                });
+                f.join();
+            }
+
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 2");
+                executor.trigger("EV2", (e, t) -> {
+                    System.out.println("EV2 consumed "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
-                    sleepRandom(0, 250);
-                })
-                .build();
+                    f.complete(null);
+                });
+                f.join();
+            }
 
-            State s2i = State.newBuilder()
-                .withName("s2i")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName()
-                            + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
-                    sleepRandom(0, 250);
-                })
-                .build();
+            s3EnteredF.join();
 
-            Transition s1s2i = Transition.newBuilder()
-                .withTrigger("EV1")
-                .withSource(s1i)
-                .withTarget(s2i)
-                .build();
+            var consumeCount = new AtomicInteger();
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 1");
+                executor.trigger("EV1", (e, t) -> {
+                    System.out.println("EV1 consumed for inner by state "
+                            + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                    );
+                    consumeCount.incrementAndGet();
+                    f.complete(null);
+                });
+                f.join();
+            }
 
-            FSM fsmChild = FSM.newBuilder()
-                .withName("Child " + i)
-                .withInitialState(s1i)
-                .withOwnedState(s1i, s2i)
-                .withTransitions(s1s2i)
-                .withFinalState(s2i)
-                .build();
+            {
+                System.out.println("> triggering event 3");
+                var f = new CompletableFuture<Void>();
+                executor.trigger("EV3", (e, t) -> {
+                    f.complete(null);
+                    System.out.println("EV3 consumed"
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                    );
+                });
+                f.join();
+            }
 
-            return fsmChild;
-        };
+            executor.stop();
 
-        int numberOFChildren = 10;
-
-        var childFSMs = IntStream.range(1, numberOFChildren+1)
-            .mapToObj(i->fsmCreator.apply(i)).collect(Collectors.toList());
-
-        var s3EnteredF = new CompletableFuture<Void>();
-        FSMState s3 = FSMState.newBuilder()
-            .withName("s3")
-            .withFSMs(childFSMs)
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entering state " + s.getName()
-                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
-                s3EnteredF.complete(null);
-            })
-            .build();
-
-        Transition s1s2 = Transition.newBuilder()
-            .withTrigger("EV1")
-            .withSource(s1)
-            .withTarget(s2)
-            .build();
-
-        Transition s2s3 = Transition.newBuilder()
-            .withTrigger("EV2")
-            .withSource(s2)
-            .withTarget(s3)
-            .build();
-
-        Transition s3s1 = Transition.newBuilder()
-            .withTrigger("EV3")
-            .withSource(s3)
-            .withTarget(s1)
-            .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
-            .build();
-
-        FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withInitialState(s1)
-            .withOwnedState(s1, s2, s3)
-            .withTransitions(s1s2, s1s2, s2s3, s3s1)
-            .withVerbose(true)
-            .build();
-
-        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.PARALLEL_REGIONS);
-
-        executor.startAsync();
-
-        s1EnteredF.join();
-
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 1");
-            executor.trigger("EV1", (e, t) -> {
-                System.out.println("EV1 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
-                f.complete(null);
-            });
-            f.join();
+            Assert.assertEquals(
+                    "EV1 should be consumed by each region R1..R" + numberOFChildren,
+                    numberOFChildren, consumeCount.get()
+            );
         }
-
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 2");
-            executor.trigger("EV2", (e, t) -> {
-                System.out.println("EV2 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-                f.complete(null);
-            });
-            f.join();
-        }
-
-        s3EnteredF.join();
-
-        var consumeCount = new AtomicInteger();
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 1");
-            executor.trigger("EV1", (e, t) -> {
-                System.out.println("EV1 consumed for inner by state "
-                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
-                    + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-                consumeCount.incrementAndGet();
-                f.complete(null);
-            });
-            f.join();
-        }
-
-        {
-            System.out.println("> triggering event 3");
-            var f = new CompletableFuture<Void>();
-            executor.trigger("EV3", (e, t) -> {
-                f.complete(null);
-                System.out.println("EV3 consumed"
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-            });
-            f.join();
-        }
-
-        executor.stop();
-
-        Assert.assertEquals(
-            "EV1 should be consumed by each region R1..R"+numberOFChildren,
-            numberOFChildren, consumeCount.get()
-        );
-
     }
 
 
-    @Test(timeout = 25000)
+    @Test(timeout = 100_000)
     public void nestedFSM() throws InterruptedException, ExecutionException {
 
         //                +------------------+
@@ -2214,165 +2233,170 @@ public class FSMTest {
 
         // - does each region (R1, R2) consume the event EV1?
 
-        var s1EnteredF = new CompletableFuture<Void>();
-        State s1 = State.newBuilder()
-            .withName("s1")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName());
-                s1EnteredF.complete(null);
-            })
-            .build();
+        for(int idx = 0; idx < NUM_ITERATIONS_SMALL_TESTS;idx++) {
 
-        State s2 = State.newBuilder()
-            .withName("s2")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName());
-            })
-            .build();
+            var s1EnteredF = new CompletableFuture<Void>();
+            State s1 = State.newBuilder()
+                    .withName("s1")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                        s1EnteredF.complete(null);
+                    })
+                    .build();
 
-        Function<Integer, FSM> fsmCreator = (i) -> {
-            State s1i = State.newBuilder()
-                .withName("s1i")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName());
-                    sleepRandom(0, 250);
-                })
-                .build();
+            State s2 = State.newBuilder()
+                    .withName("s2")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                    })
+                    .build();
 
-            State s2i = State.newBuilder()
-                .withName("s2i")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName());
-                    sleepRandom(0, 250);
-                })
-                .build();
+            Function<Integer, FSM> fsmCreator = (i) -> {
+                State s1i = State.newBuilder()
+                        .withName("s1i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
-            Transition s1s2i = Transition.newBuilder()
-                .withTrigger("EV1")
-                .withSource(s1i)
-                .withTarget(s2i)
-                .build();
+                State s2i = State.newBuilder()
+                        .withName("s2i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
-            FSM fsmChild = FSM.newBuilder()
-                .withName("Child " + i)
-                .withInitialState(s1i)
-                .withOwnedState(s1i, s2i)
-                .withTransitions(s1s2i)
-                .withFinalState(s2i)
-                .build();
+                Transition s1s2i = Transition.newBuilder()
+                        .withTrigger("EV1")
+                        .withSource(s1i)
+                        .withTarget(s2i)
+                        .build();
 
-            return fsmChild;
-        };
+                FSM fsmChild = FSM.newBuilder()
+                        .withName("Child " + i)
+                        .withInitialState(s1i)
+                        .withOwnedState(s1i, s2i)
+                        .withTransitions(s1s2i)
+                        .withFinalState(s2i)
+                        .build();
 
-        int numberOFChildren = 10;
+                return fsmChild;
+            };
 
-        var childFSMs = IntStream.range(1, numberOFChildren+1)
-            .mapToObj(i->fsmCreator.apply(i)).collect(Collectors.toList());
+            int numberOFChildren = ThreadLocalRandom.current().nextInt(30) + 1;
 
-        var s3EnteredF = new CompletableFuture<Void>();
-        FSMState s3 = FSMState.newBuilder()
-            .withName("s3")
-            .withFSMs(childFSMs)
-            .withOnEntryAction((s, e) -> {
-                System.out.println("entering state " + s.getName());
-                s3EnteredF.complete(null);
-            })
-            .build();
+            var childFSMs = IntStream.range(1, numberOFChildren + 1)
+                    .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
 
-        Transition s1s2 = Transition.newBuilder()
-            .withTrigger("EV1")
-            .withSource(s1)
-            .withTarget(s2)
-            .build();
+            var s3EnteredF = new CompletableFuture<Void>();
+            FSMState s3 = FSMState.newBuilder()
+                    .withName("s3")
+                    .withFSMs(childFSMs)
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entering state " + s.getName());
+                        s3EnteredF.complete(null);
+                    })
+                    .build();
 
-        Transition s2s3 = Transition.newBuilder()
-            .withTrigger("EV2")
-            .withSource(s2)
-            .withTarget(s3)
-            .build();
+            Transition s1s2 = Transition.newBuilder()
+                    .withTrigger("EV1")
+                    .withSource(s1)
+                    .withTarget(s2)
+                    .build();
 
-        Transition s3s1 = Transition.newBuilder()
-            .withTrigger("EV3")
-            .withSource(s3)
-            .withTarget(s1)
-            .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
-            .build();
+            Transition s2s3 = Transition.newBuilder()
+                    .withTrigger("EV2")
+                    .withSource(s2)
+                    .withTarget(s3)
+                    .build();
 
-        FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withInitialState(s1)
-            .withOwnedState(s1, s2, s3)
-            .withTransitions(s1s2, s1s2, s2s3, s3s1)
-            .withVerbose(true)
-            .build();
+            Transition s3s1 = Transition.newBuilder()
+                    .withTrigger("EV3")
+                    .withSource(s3)
+                    .withTarget(s1)
+                    .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
+                    .build();
 
-        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.PARALLEL_REGIONS);
+            FSM fsm = FSM.newBuilder()
+                    .withName("FSM")
+                    .withInitialState(s1)
+                    .withOwnedState(s1, s2, s3)
+                    .withTransitions(s1s2, s1s2, s2s3, s3s1)
+                    .withVerbose(true)
+                    .build();
 
-        executor.startAsync();
+            var mode = idx%2==0
+                    ?AsyncExecutor.ExecutionMode.SERIAL_REGIONS
+                    :AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
 
-        s1EnteredF.join();
+            System.out.println("> running executor with " + mode.name());
+            Executor executor = Executor.newInstance(fsm, mode);
 
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 1");
-            executor.trigger("EV1", (e, t) -> {
-                System.out.println("EV1 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-                f.complete(null);
-            });
-            f.join();
+            executor.startAsync();
+
+            s1EnteredF.join();
+
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 1");
+                executor.trigger("EV1", (e, t) -> {
+                    System.out.println("EV1 consumed "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                    );
+                    f.complete(null);
+                });
+                f.join();
+            }
+
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 2");
+                executor.trigger("EV2", (e, t) -> {
+                    System.out.println("EV2 consumed "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                    );
+                    f.complete(null);
+                });
+                f.join();
+            }
+
+            s3EnteredF.join();
+
+            var consumeCount = new AtomicInteger();
+            {
+                var f = new CompletableFuture<Void>();
+                System.out.println("> triggering event 1");
+                executor.trigger("EV1", (e, t) -> {
+                    System.out.println("EV1 consumed for inner by state "
+                            + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName() + " "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                    );
+                    consumeCount.incrementAndGet();
+                    f.complete(null);
+                });
+                f.join();
+            }
+
+            {
+                System.out.println("> triggering event 3");
+                var f = new CompletableFuture<Void>();
+                executor.trigger("EV3", (e, t) -> {
+                    f.complete(null);
+                    System.out.println("EV3 consumed: "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                    );
+                });
+                f.join();
+            }
+
+            executor.stop();
+
+            Assert.assertEquals(
+                    "EV1 should be consumed by each region R1..R" + numberOFChildren,
+                    numberOFChildren, consumeCount.get()
+            );
         }
-
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 2");
-            executor.trigger("EV2", (e, t) -> {
-                System.out.println("EV2 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-                f.complete(null);
-            });
-            f.join();
-        }
-
-        s3EnteredF.join();
-
-        var consumeCount = new AtomicInteger();
-        {
-            var f = new CompletableFuture<Void>();
-            System.out.println("> triggering event 1");
-            executor.trigger("EV1", (e, t) -> {
-                System.out.println("EV1 consumed for inner by state "
-                    + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName() + " "
-                    + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-                consumeCount.incrementAndGet();
-                f.complete(null);
-            });
-            f.join();
-        }
-
-        {
-            System.out.println("> triggering event 3");
-            var f = new CompletableFuture<Void>();
-            executor.trigger("EV3", (e, t) -> {
-                f.complete(null);
-                System.out.println("EV3 consumed: "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                );
-            });
-            f.join();
-        }
-
-        executor.stop();
-
-        Assert.assertEquals(
-            "EV1 should be consumed by each region R1..R"+numberOFChildren,
-            numberOFChildren, consumeCount.get()
-        );
-
     }
-
-
 }
