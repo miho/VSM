@@ -33,6 +33,9 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * An async executor for state machines.
+ */
 public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
@@ -78,7 +81,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     }
 
     /**
-     * Creates a new executor instance.
+     * Creates a new async executor instance.
      * @param fsm the fsm to execute
      * @param mode the execution mode
      * @return the new executor instance
@@ -134,6 +137,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         }
     }
 
+    @Override
     public boolean process(Event evt) {
 
         if(executorRunning.get()) {
@@ -151,6 +155,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         }
     }
 
+    @Override
     public boolean process(String evt, EventConsumedAction onConsumed, Object... args) {
 
         if(executorRunning.get()) {
