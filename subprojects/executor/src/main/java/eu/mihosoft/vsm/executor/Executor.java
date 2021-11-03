@@ -36,9 +36,9 @@ import java.util.stream.Collectors;
 public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
-    private Thread doActionThread;
-    private CompletableFuture<Void> doActionFuture;
-    private Thread executionThread;
+    private volatile Thread doActionThread;
+    private volatile CompletableFuture<Void> doActionFuture;
+    private volatile Thread executionThread;
     private final Map<State, Boolean> stateExited = new HashMap<>();
     private final int depth;
     private final FSM fsm;
@@ -49,10 +49,10 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
 
     private final AsyncExecutor.ExecutionMode mode;
 
-    private static final long MAX_EVT_CONSUMED_ACTION_TIMEOUT = 1000 /*ms*/;
-    private static final long MAX_ENTER_ACTION_TIMEOUT        = 1000 /*ms*/;
-    private static final long MAX_EXIT_ACTION_TIMEOUT         = 1000 /*ms*/;
-    private static final long MAX_TRANSITION_ACTION_TIMEOUT   = 1000 /*ms*/;
+    private static final long MAX_EVT_CONSUMED_ACTION_TIMEOUT = 10_000 /*ms*/;
+    private static final long MAX_ENTER_ACTION_TIMEOUT        = 10_000 /*ms*/;
+    private static final long MAX_EXIT_ACTION_TIMEOUT         = 10_000 /*ms*/;
+    private static final long MAX_TRANSITION_ACTION_TIMEOUT   = 10_000 /*ms*/;
 
     private static Optional<Executor> getLCA(Executor a, Executor b) {
         int start = Math.min(a.pathToRoot.size(), b.pathToRoot.size());
@@ -77,6 +77,12 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         pathToRoot.add(this);
     }
 
+    /**
+     * Creates a new executor instance.
+     * @param fsm the fsm to execute
+     * @param mode the execution mode
+     * @return the new executor instance
+     */
     public static Executor newInstance(FSM fsm, ExecutionMode mode) {
         return new Executor(fsm, mode, 0, null);
     }
@@ -128,7 +134,32 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         }
     }
 
+    public boolean process(Event evt) {
+
+        if(executorRunning.get()) {
+            throw new RuntimeException(
+                    "Cannot call 'process()' if machine is already running,"+
+                            " try calling trigger(). The 'process()' method triggers and" +
+                            " processes the event in a single method call.");
+        }
+
+        try {
+            trigger(evt);
+            return processRemainingEvents();
+        } finally {
+            //
+        }
+    }
+
     public boolean process(String evt, EventConsumedAction onConsumed, Object... args) {
+
+        if(executorRunning.get()) {
+            throw new RuntimeException(
+                    "Cannot call 'process()' if machine is already running,"+
+                            " try calling trigger(). The 'process()' method triggers and" +
+                            " processes the event in a single method call.");
+        }
+
         try {
             trigger(evt, onConsumed, args);
             return processRemainingEvents();
@@ -140,12 +171,12 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     @Override
     public boolean process(String evt, Object... args) {
 
-//        if() {
-//            throw new RuntimeException(
-//                "Cannot call 'process()' if machine is already running,"+
-//                " try calling trigger(). The 'process()' method triggers and" +
-//                        " processes the event in a single method call.");
-//        }
+        if(executorRunning.get()) {
+            throw new RuntimeException(
+                    "Cannot call 'process()' if machine is already running,"+
+                            " try calling trigger(). The 'process()' method triggers and" +
+                            " processes the event in a single method call.");
+        }
 
         try {
             trigger(evt, args);
@@ -184,10 +215,11 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         }
     }
 
-    boolean firedFinalState   = false;
-    boolean firedDoActionDone = false;
-    boolean firedStateDone    = false;
+    private volatile boolean firedFinalState   = false;
+    private volatile boolean firedDoActionDone = false;
+    private volatile boolean firedStateDone    = false;
 
+    @Override
     public boolean processRemainingEvents() {
 
         // everything modified concurrently with start(), reset(), stop() etc. must be inside
@@ -218,30 +250,30 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         boolean consumed = false;
         State prevState = getCaller().getCurrentState();
 
-        if(prevState instanceof FSMState) {
-            // if we are in a state with nested fsm we process any upcoming events even if we don't
-            // currently have events in our queue
-            if (prevState instanceof FSMState) {
-                FSMState fsmState = (FSMState) prevState;
-                for (FSM childFSM : fsmState.getFSMs()) {
-                    if (childFSM != null) {
-                        childFSM.getExecutor().processRemainingEvents();
-                    }
-                } // end for each child fsm
 
-                boolean allMatch = fsmState.getFSMs().stream()
-                        .allMatch(fsm->!fsm.isRunning()&&fsm.getFinalState().contains(fsm.getCurrentState()));
-
-                if(allMatch && !firedFinalState) {
-                    log("> triggering final-state, currently in state " + prevState.getName());
-                    triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true)
-                            .withArgs(fsmState.getName()+":"+System.identityHashCode(fsmState)).build());
-                    firedFinalState = true;
-                    log(" -> final state reached via: "
-                            + fsmState.getFSMs().stream().map(cfsm->cfsm.getName()).collect(Collectors.toList()));
+        // if we are in a state with nested fsm we process any upcoming events even if we don't
+        // currently have events in our queue
+        if (prevState instanceof FSMState) {
+            FSMState fsmState = (FSMState) prevState;
+            for (FSM childFSM : fsmState.getFSMs()) {
+                if (childFSM != null) {
+                    childFSM.getExecutor().processRemainingEvents();
                 }
+            } // end for each child fsm
+
+            boolean allMatch = fsmState.getFSMs().stream()
+                    .allMatch(fsm -> !fsm.isRunning() && fsm.getFinalState().contains(fsm.getCurrentState()));
+
+            if (allMatch && !firedFinalState) {
+                log("> triggering final-state, currently in state " + prevState.getName());
+                triggerFirst(Event.newBuilder().withName(FSMEvents.FINAL_STATE.getName()).withLocal(true)
+                        .withArgs(fsmState.getName() + ":" + System.identityHashCode(fsmState)).build());
+                firedFinalState = true;
+                log(" -> final state reached via: "
+                        + fsmState.getFSMs().stream().map(cfsm -> cfsm.getName()).collect(Collectors.toList()));
             }
         }
+
 
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
@@ -298,14 +330,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                     removed = removedParam.get();
                     consumed = consumedParam.get();
                 } else {
-//                    if(!firedFinalState) {
-//                        triggerFirst(Event.newBuilder()
-//                            .withName(FSMEvents.FINAL_STATE.getName())
-//                            .withLocal(true).build());
-//                        log("> triggering final-state, currently in state " + currentState.getName());
-//                        log(" -> final state reached via: current state (no children available)");
-//                        firedFinalState = true;
-//                    }
+                    //
                 }
 
                 if(FSMEvents.FINAL_STATE.getName().equals(evt.getName())) {
@@ -787,7 +812,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         return true;
     }
 
-    //@Override
+    @Override
     public void exitDoActionOfState(Event evt, State state) {
         this.exitDoActionOfOldState(evt, state, null);
     }
@@ -900,6 +925,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             || s.getDeferredEvents().stream().anyMatch(dE-> Pattern.matches(dE, evt.getName()));
     }
 
+    @Override
     public void startAndWait() {
 
         var f = new CompletableFuture();
@@ -923,44 +949,57 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     private long duration2 =  100;
     private long duration3 =   10;
     private long waitTime  =   10;
+
+    private final AtomicBoolean executorRunning = new AtomicBoolean();
+
     private void start_int() {
-        while(getCaller().isRunning()&&!Thread.currentThread().isInterrupted()) {
-            try {
-                long currentTime = System.currentTimeMillis();
-                boolean eventsProcessed = getCaller().getExecutor().processRemainingEvents();
+        try {
+            executorRunning.set(true);
+            while (getCaller().isRunning() && !Thread.currentThread().isInterrupted()) {
+                try {
+                    long currentTime = System.currentTimeMillis();
+                    boolean eventsProcessed = getCaller().getExecutor().processRemainingEvents();
 
-                if(Thread.currentThread() == executionThread) {
-                    if(eventsProcessed||timestamp==0) {
-                        timestamp = currentTime;
-                    }
-
-                    long timeDiff = currentTime - timestamp;
-                    if (timeDiff > duration1) {
-                        waitTime = 100;
-                    } else if (timeDiff > duration2) {
-                        waitTime = 10;
-                    } else if (timeDiff > duration3) {
-                        waitTime = 1;
-                    } else {
-                        // full speed
-                        waitTime = 0;
-                    }
-
-                    try {
-                        synchronized (executionThread) {
-                            if(waitTime>0) {
-                                executionThread.wait(waitTime);
-                            }
+                    if (Thread.currentThread() == executionThread) {
+                        if (eventsProcessed || timestamp == 0) {
+                            timestamp = currentTime;
                         }
-                    } catch (InterruptedException iEx) {
-                        Thread.currentThread().interrupt();
+
+                        long timeDiff = currentTime - timestamp;
+                        if (timeDiff > duration1) {
+                            waitTime = 100;
+                        } else if (timeDiff > duration2) {
+                            waitTime = 10;
+                        } else if (timeDiff > duration3) {
+                            waitTime = 1;
+                        } else {
+                            // full speed
+                            waitTime = 0;
+                        }
+
+                        try {
+                            synchronized (executionThread) {
+                                if (waitTime > 0) {
+                                    executionThread.wait(waitTime);
+                                }
+                            }
+                        } catch (InterruptedException iEx) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
+                } catch (Exception ex) {
+                    Thread.currentThread().interrupt();
+                    throw ex;
                 }
-            } catch (Exception ex) {
-                Thread.currentThread().interrupt();
-                throw ex;
             }
+        } finally {
+            executorRunning.set(false);
         }
+    }
+
+    @Override
+    public boolean isRunning() {
+        return executorRunning.get();
     }
 
     @Override

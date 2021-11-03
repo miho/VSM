@@ -54,8 +54,10 @@ public interface Executor {
     void trigger(Event event);
 
     /**
-     * Triggers and processes the specified event. The state machine must
-     * not be running if this method should be used.
+     * Triggers and processes the specified event. The executor of the state machine must
+     * not be running (via {@link Executor#isRunning()}) if this method should be used.
+     * This method returns as soon as the triggered event and events created as consequence
+     * of triggering this event have been processed.
      * @param evt event identifier
      * @param args optional event arguments
      * @return {@code true} if the method processed events; {@code false} otherwise
@@ -67,6 +69,13 @@ public interface Executor {
      * @return {@code true} if the method processed events; {@code false} otherwise
      */
     boolean processRemainingEvents();
+
+    /**
+     * Indicates whether this executor is currently running.
+     *
+     * @return {@code true} if this executor is currently running; {@code false} otherwise
+     */
+    boolean isRunning();
 
     /**
      * Resets the associated state machine excluding nested state machines.
@@ -120,7 +129,7 @@ public interface Executor {
     /**
      * Events triggered by the state machine.
      */
-    public enum FSMEvents {
+    enum FSMEvents {
 
         /**
          * Triggerred if state is done.
