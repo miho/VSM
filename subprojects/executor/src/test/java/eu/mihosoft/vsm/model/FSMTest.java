@@ -1831,7 +1831,7 @@ public class FSMTest {
 
     }
 
-    @Test
+    @Test(timeout = 25000)
     public void nestedFSMEventConsumedActionTest() throws InterruptedException, ExecutionException {
         
         //                +------------------+
@@ -1964,7 +1964,7 @@ public class FSMTest {
                 System.out.println("myEvent1 consumed");
                 f.complete(null);
             });
-            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
         {
@@ -1974,10 +1974,10 @@ public class FSMTest {
                 System.out.println("EV2 consumed");
                 f.complete(null);
             });
-            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
-        s3EnteredF.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+        s3EnteredF.join();
 
        var consumeCount = new AtomicInteger();
         {
@@ -1988,17 +1988,7 @@ public class FSMTest {
             });
         }
 
-//        {
-//            System.out.println("> triggering event 3");
-//            var f = new CompletableFuture<Void>();
-//            executor.trigger("EV3", (e, t) -> {
-//                f.complete(null);
-//                System.out.println("EV3 consumed");
-//            });
-//            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
-//        }
-
-        s3s1F.orTimeout(10000*numberOFChildren, TimeUnit.MILLISECONDS).join();
+        s3s1F.join();
 
         executor.stop();
 
@@ -2009,7 +1999,7 @@ public class FSMTest {
 
     }
 
-    @Test
+    @Test(timeout = 25000)
     public void nestedFSMEventConsumedActionTest2() throws InterruptedException, ExecutionException {
 
         //                +------------------+
@@ -2037,7 +2027,8 @@ public class FSMTest {
         State s1 = State.newBuilder()
             .withName("s1")
             .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName());
+                System.out.println("entered state " + s.getName()
+                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                 s1EnteredF.complete(null);
             })
             .build();
@@ -2045,7 +2036,9 @@ public class FSMTest {
         State s2 = State.newBuilder()
             .withName("s2")
             .withOnEntryAction((s, e) -> {
-                System.out.println("entered state " + s.getName());
+                System.out.println("entered state " + s.getName()
+                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                );
             })
             .build();
 
@@ -2053,7 +2046,9 @@ public class FSMTest {
             State s1i = State.newBuilder()
                 .withName("s1i")
                 .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName());
+                    System.out.println("cfsm" + i + " entered state " + s.getName()
+                            + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                    );
                     sleepRandom(0, 250);
                 })
                 .build();
@@ -2061,7 +2056,8 @@ public class FSMTest {
             State s2i = State.newBuilder()
                 .withName("s2i")
                 .withOnEntryAction((s, e) -> {
-                    System.out.println("cfsm" + i + " entered state " + s.getName());
+                    System.out.println("cfsm" + i + " entered state " + s.getName()
+                            + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                     sleepRandom(0, 250);
                 })
                 .build();
@@ -2093,7 +2089,8 @@ public class FSMTest {
             .withName("s3")
             .withFSMs(childFSMs)
             .withOnEntryAction((s, e) -> {
-                System.out.println("entering state " + s.getName());
+                System.out.println("entering state " + s.getName()
+                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                 s3EnteredF.complete(null);
             })
             .build();
@@ -2139,7 +2136,7 @@ public class FSMTest {
                         + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                 f.complete(null);
             });
-            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
         {
@@ -2151,10 +2148,10 @@ public class FSMTest {
                 );
                 f.complete(null);
             });
-            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
-        s3EnteredF.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+        s3EnteredF.join();
 
         var consumeCount = new AtomicInteger();
         {
@@ -2168,7 +2165,7 @@ public class FSMTest {
                 consumeCount.incrementAndGet();
                 f.complete(null);
             });
-            f.orTimeout(1000*numberOFChildren, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
         {
@@ -2180,7 +2177,7 @@ public class FSMTest {
                         + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                 );
             });
-            f.orTimeout(10000*numberOFChildren, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
         executor.stop();
@@ -2193,7 +2190,7 @@ public class FSMTest {
     }
 
 
-    @Test
+    @Test(timeout = 25000)
     public void nestedFSM() throws InterruptedException, ExecutionException {
 
         //                +------------------+
@@ -2324,7 +2321,7 @@ public class FSMTest {
                 );
                 f.complete(null);
             });
-            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
         {
@@ -2336,10 +2333,10 @@ public class FSMTest {
                 );
                 f.complete(null);
             });
-            f.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
-        s3EnteredF.orTimeout(1000, TimeUnit.MILLISECONDS).join();
+        s3EnteredF.join();
 
         var consumeCount = new AtomicInteger();
         {
@@ -2353,7 +2350,7 @@ public class FSMTest {
                 consumeCount.incrementAndGet();
                 f.complete(null);
             });
-            f.orTimeout(1000*numberOFChildren, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
         {
@@ -2365,7 +2362,7 @@ public class FSMTest {
                         + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                 );
             });
-            f.orTimeout(10000*numberOFChildren, TimeUnit.MILLISECONDS).join();
+            f.join();
         }
 
         executor.stop();
