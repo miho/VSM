@@ -175,9 +175,9 @@ project.findProperty("signing.secretKeyRingFile")
     }
 } else {
     println "> skipping signing, provide\n" +
-            " - 'signing.secretKeyRingFile'\n" +
-            " - 'signing.password'\n" +
-            " - 'signing.keyId'\n" +
+            "  - 'signing.secretKeyRingFile'\n" +
+            "  - 'signing.password'\n" +
+            "  - 'signing.keyId'\n" +
             " to activate it\n"
 }
 
