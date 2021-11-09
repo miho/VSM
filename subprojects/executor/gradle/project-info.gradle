@@ -1,20 +1,22 @@
 // publishing information
 // -----------------------------------------------------------------------------
-ext.publishing.artifactId =  'runtime-executor'
-ext.publishing.groupId    =  'eu.mihosoft.vsm'
-ext.publishing.versionId  =  rootProject.commonProps.get("publication.version")
+ext.publishingInfo.artifactId =  'runtime-executor'
+ext.publishingInfo.groupId    =  'eu.mihosoft.vsm'
+ext.publishingInfo.versionId  =  rootProject.commonProps.get("publication.version")
 
-ext.publishing.developerName         = 'Michael Hoffer'
-ext.publishing.developerAlias        = 'miho'
-ext.publishing.developerEmail        = 'info@michaelhoffer.de'
-ext.publishing.inceptionYear         = '2019'
+ext.publishingInfo.developerName         = 'Michael Hoffer'
+ext.publishingInfo.developerAlias        = 'miho'
+ext.publishingInfo.developerEmail        = 'info@michaelhoffer.de'
+ext.publishingInfo.inceptionYear         = '2019'
 
-ext.publishing.desc                  = 'State Machine Model based on VMF (VRL Modeling Framework).'
-ext.publishing.license               = 'Apache-2.0'
-ext.publishing.licenseUrl            = 'https://github.com/miho/VMS/blob/master/LICENSE'
-ext.publishing.labels                = ['state machines','state charts','hsm', 'vmf', 'modeling', 'data model', 'vrl', 'modeling framework']
-ext.publishing.websiteUrl            = 'https://github.com/miho/VSM'
-ext.publishing.issueTrackerUrl       = 'https://github.com/miho/VSM/issues'
-ext.publishing.vcsUrl                = 'https://github.com/miho/VSM.git'
+ext.publishingInfo.desc                  = 'State Machine Model based on VMF (VRL Modeling Framework).'
+ext.publishingInfo.license               = 'Apache-2.0'
+ext.publishingInfo.licenseUrl            = 'https://github.com/miho/VMS/blob/master/LICENSE'
+ext.publishingInfo.labels                = ['state machines','state charts','hsm', 'vmf', 'modeling', 'data model', 'vrl', 'modeling framework']
+ext.publishingInfo.websiteUrl            = 'https://github.com/miho/VSM'
+ext.publishingInfo.issueTrackerUrl       = 'https://github.com/miho/VSM/issues'
+ext.publishingInfo.vcsUrl                = 'https://github.com/miho/VSM.git'
 
-ext.publishing.pomName               =  ext.publishing.artifactId
+ext.publishingInfo.gitHubMavenRepo       = "https://maven.pkg.github.com/miho/vsm"
+
+ext.publishingInfo.pomName               =  ext.publishingInfo.artifactId
