@@ -13,6 +13,12 @@ plugins {
 
 allprojects {
 
+    repositories {
+        maven { url 'https://jitpack.io' }
+        mavenCentral()
+        mavenLocal()
+    }
+
     apply plugin: 'java'
     apply plugin: 'com.github.hierynomus.license'
     

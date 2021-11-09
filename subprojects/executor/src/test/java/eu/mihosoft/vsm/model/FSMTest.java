@@ -27,9 +27,8 @@ package eu.mihosoft.vsm.model;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-import eu.mihosoft.vsm.executor.Executor;
+import eu.mihosoft.vsm.executor.FSMExecutors;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
 
 import java.lang.management.ManagementFactory;
@@ -38,15 +37,13 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
 public class FSMTest {
 
-    private static final eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode MODE
-            = eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS;
+    private static final AsyncFSMExecutor.ExecutionMode MODE
+            = AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
 
     private static final int NUM_ITERATIONS_LARGE_TESTS = 5;
     private static final int NUM_ITERATIONS_SMALL_TESTS = 10;
@@ -163,7 +160,7 @@ public class FSMTest {
                 }
             });
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
             executor.startAsync();
 
@@ -218,7 +215,7 @@ public class FSMTest {
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 //        executor.startAsync();
             fsm.setRunning(true);
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -231,7 +228,7 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
-            if(MODE == eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS) {
+            if(MODE == AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS) {
 
                 Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
 
@@ -281,7 +278,7 @@ public class FSMTest {
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
             fsm.setRunning(true);
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -335,7 +332,7 @@ public class FSMTest {
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
             executor.startAsync();
 
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -389,7 +386,7 @@ public class FSMTest {
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList, false);
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
             executor.startAsync();
 
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -444,7 +441,7 @@ public class FSMTest {
 
             FSM fsm = createNestedWithOrthogonal(actualEvtList, true);
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
             executor.startAsync();
 
             executor.trigger("myEvent1", (e, t) -> System.out.println("consumed " + e.getName() + ", " + t.getOwningFSM().getName()));
@@ -623,8 +620,8 @@ public class FSMTest {
                                 .withSource(stateC)
                                 .withTarget(stateA)
                                 .withTrigger(finalStateInNested
-                                    ?eu.mihosoft.vsm.model.Executor.FSMEvents.FINAL_STATE.getName()
-                                    :eu.mihosoft.vsm.model.Executor.FSMEvents.DO_ACTION_DONE.getName())
+                                    ? FSMExecutor.FSMEvents.FINAL_STATE.getName()
+                                    : FSMExecutor.FSMEvents.DO_ACTION_DONE.getName())
                                 .build()
                 )
                 .build();
@@ -707,7 +704,7 @@ public class FSMTest {
 
             fsm.getTransitions().add(a_a__a_b_a);
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
             fsm.setRunning(true);
             executor.process("myEvent1");
             fsm.setRunning(false);
@@ -805,7 +802,7 @@ public class FSMTest {
                 .withTransitions(openDoor,closeDoor,lockDoor,unlockDoor)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, MODE);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
         fsm.setRunning(true);
 
@@ -936,7 +933,7 @@ public class FSMTest {
                 .withTransitions(openDoor,closeDoor,lockDoor,unlockDoor)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, MODE);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
         fsm.setRunning(true);
 
@@ -1066,7 +1063,7 @@ public class FSMTest {
                 .withTransitions(openDoor,closeDoor,lockDoor,unlockDoor)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, MODE);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
         fsm.setRunning(true);
 
@@ -1197,7 +1194,7 @@ public class FSMTest {
                 System.out.println("\nCase Priority to C2:");
                 List<String> actualEvtList = new ArrayList<>();
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, true);
-                Executor executor = Executor.newInstance(fsm, MODE);
+                var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
                 executor.startAsync();
 
@@ -1234,7 +1231,7 @@ public class FSMTest {
                 System.out.println("\nCase Priority to S2:");
                 List<String> actualEvtList = new ArrayList<>();
                 FSM fsm = createTransitionPriorityFSM(actualEvtList, false);
-                Executor executor = Executor.newInstance(fsm, MODE);
+                var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
                 executor.startAsync();
 
@@ -1409,7 +1406,7 @@ public class FSMTest {
                     .build();
 
             Transition c1_c2 = Transition.newBuilder()
-                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
+                    .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
                     .withSource(c1)
                     .withTarget(c2)
                     .build();
@@ -1474,19 +1471,19 @@ public class FSMTest {
                     .build();
 
             Transition s1_childFSMState = Transition.newBuilder()
-                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
+                    .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
                     .withSource(s1)
                     .withTarget(childFSMState)
                     .build();
 
             Transition childFSMState_s2 = Transition.newBuilder()
-                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.FINAL_STATE.getName())
+                    .withTrigger(FSMExecutor.FSMEvents.FINAL_STATE.getName())
                     .withSource(childFSMState)
                     .withTarget(s2)
                     .build();
 
             Transition s2_s3 = Transition.newBuilder()
-                    .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
+                    .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
                     .withSource(s2)
                     .withTarget(s3)
                     .build();
@@ -1510,7 +1507,7 @@ public class FSMTest {
 
             fsm.setVerbose(true);
 
-            Executor executor = Executor.newInstance(fsm, MODE);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
             fsm.setRunning(true);
 
@@ -1518,7 +1515,7 @@ public class FSMTest {
                 executor.processRemainingEvents();
             }
 
-            if(MODE == eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.PARALLEL_REGIONS) {
+            if(MODE == AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS) {
 
                 Thread.sleep(100); // TODO (hasRemainingEvents() might still be buggy)
 
@@ -1614,13 +1611,13 @@ public class FSMTest {
                 .build();
 
         Transition s1_s2 = Transition.newBuilder()
-                .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
                 .withSource(s1)
                 .withTarget(s2)
                 .build();
 
         Transition s2_s3 = Transition.newBuilder()
-                .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
                 .withSource(s2)
                 .withTarget(s3)
                 .build();
@@ -1645,7 +1642,7 @@ public class FSMTest {
 
         fsm.setVerbose(true);
 
-        Executor executor = Executor.newInstance(fsm, MODE);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
         fsm.setRunning(true);
         while(executor.hasRemainingEvents()) {
@@ -1703,7 +1700,7 @@ public class FSMTest {
                 .withTransitions(s1s2)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.SERIAL_REGIONS);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS);
 
         fsm.setRunning(true);
         executor.process("myEvent1");
@@ -1757,7 +1754,7 @@ public class FSMTest {
                 .withErrorState(error)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, eu.mihosoft.vsm.model.AsyncExecutor.ExecutionMode.SERIAL_REGIONS);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS);
 
         fsm.setRunning(true);
         executor.process("myEvent1");
@@ -1818,8 +1815,7 @@ public class FSMTest {
                 .withErrorState(error)
                 .build();
 
-        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.SERIAL_REGIONS);
-
+        var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS);
         executor.startAsync();
         Thread.sleep(100);
         executor.trigger("myEvent1");
@@ -1933,7 +1929,7 @@ public class FSMTest {
 
         var s3s1F = new CompletableFuture<>();
         Transition s3s1 = Transition.newBuilder()
-            .withTrigger(eu.mihosoft.vsm.model.Executor.FSMEvents.STATE_DONE.getName())
+            .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
             .withSource(s3)
             .withTarget(s1)
             .withActions((t, e) -> {
@@ -1950,7 +1946,7 @@ public class FSMTest {
             .withVerbose(true)
             .build();
 
-        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.PARALLEL_REGIONS);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS);
 
         executor.startAsync();
 
@@ -2124,7 +2120,7 @@ public class FSMTest {
             .withVerbose(true)
             .build();
 
-        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.PARALLEL_REGIONS);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS);
 
         executor.startAsync();
 
@@ -2301,7 +2297,7 @@ public class FSMTest {
             .withVerbose(true)
             .build();
 
-        Executor executor = Executor.newInstance(fsm, AsyncExecutor.ExecutionMode.PARALLEL_REGIONS);
+        var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS);
 
         executor.startAsync();
 

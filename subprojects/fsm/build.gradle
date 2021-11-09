@@ -3,8 +3,8 @@ buildscript {
     ext.vmfPluginIntelliJIntegration = true
 
     repositories {
+        maven { url 'https://jitpack.io' }
         mavenCentral()
-        jcenter()
         mavenLocal()
     }
 
@@ -20,31 +20,26 @@ plugins {
 //    id 'com.github.hierynomus.license' version '0.14.0'
     id 'maven-publish'
     id 'net.nemerosa.versioning' version '2.7.1'
-    id 'com.jfrog.bintray' version '1.8.4'
     id 'com.github.ben-manes.versions' version '0.13.0'
-}
-
-// load plugins
-apply plugin: 'eu.mihosoft.vmf'
-apply from: 'gradle/publishing.gradle'
-
-repositories {
-    mavenCentral()
-    jcenter()
-    mavenLocal()
 }
 
 dependencies {
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.hamcrest:hamcrest:2.2'
 
-    implementation "eu.mihosoft.vmf:vmf:${rootProject.commonProps.get("vmf.version")}"
+    implementation "eu.mihosoft.vmf:vmf-runtime:${rootProject.commonProps.get("vmf.version")}"
 }
+
+
+// load plugins
+apply plugin: 'eu.mihosoft.vmf'
+apply from: 'gradle/publishing.gradle'
+
 
 // set dependencies for intellij editor (otherwise vmf dir would be ignored)
 idea.module {
         dependencies {
-            implementation group: 'eu.mihosoft.vmf', name: 'vmf', version: rootProject.commonProps.get("vmf.version")
+            implementation group: 'eu.mihosoft.vmf', name: 'vmf', version: "${rootProject.commonProps.get("vmf.version")}"
         }
 }
 

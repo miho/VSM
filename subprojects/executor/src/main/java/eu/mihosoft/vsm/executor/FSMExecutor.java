@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
+class FSMExecutor implements AsyncFSMExecutor {
 
     private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
     private Thread doActionThread;
@@ -45,16 +45,16 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     private final ReentrantLock fsmLock = new ReentrantLock();
     private final ReentrantLock eventLock = new ReentrantLock();
 
-    private final List<Executor> pathToRoot = new ArrayList<>();
+    private final List<FSMExecutor> pathToRoot = new ArrayList<>();
 
-    private final AsyncExecutor.ExecutionMode mode;
+    private final AsyncFSMExecutor.ExecutionMode mode;
 
     private static final long MAX_EVT_CONSUMED_ACTION_TIMEOUT = 1000 /*ms*/;
     private static final long MAX_ENTER_ACTION_TIMEOUT        = 1000 /*ms*/;
     private static final long MAX_EXIT_ACTION_TIMEOUT         = 1000 /*ms*/;
     private static final long MAX_TRANSITION_ACTION_TIMEOUT   = 1000 /*ms*/;
 
-    private static Optional<Executor> getLCA(Executor a, Executor b) {
+    private static Optional<FSMExecutor> getLCA(FSMExecutor a, FSMExecutor b) {
         int start = Math.min(a.pathToRoot.size(), b.pathToRoot.size());
 
         for(int i = start; i >=0; i++) {
@@ -66,7 +66,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         return Optional.empty();
     }
 
-    private Executor(FSM fsm, ExecutionMode mode, int depth, Executor parent) {
+    private FSMExecutor(FSM fsm, ExecutionMode mode, int depth, FSMExecutor parent) {
         this.fsm = fsm;
         this.mode = mode;
         this.fsm.setExecutor(this);
@@ -77,8 +77,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
         pathToRoot.add(this);
     }
 
-    public static Executor newInstance(FSM fsm, ExecutionMode mode) {
-        return new Executor(fsm, mode, 0, null);
+    public static FSMExecutor newInstance(FSM fsm, ExecutionMode mode) {
+        return new FSMExecutor(fsm, mode, 0, null);
     }
 
     private int getDepth() {
@@ -528,7 +528,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                 throw new RuntimeException("Action cannot be executed", ex);
             }
 
-            eu.mihosoft.vsm.model.Executor parentExecutor = getCaller().getParentState().getOwningFSM().getExecutor();
+            eu.mihosoft.vsm.model.FSMExecutor parentExecutor = getCaller().getParentState().getOwningFSM().getExecutor();
             parentExecutor.triggerFirst(Event.newBuilder().withName(FSMEvents.ERROR.getName()).
                     withArgs(evt, oldState, newState, ex).build());
 
@@ -667,7 +667,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                                 if (childFSM.getExecutor() == null) {
                                     getCaller().getExecutor().newChild(childFSM);
                                 }
-                                eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
+                                eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
                                 executor.reset();
                                 childFSM.setRunning(true);
                             } finally {
@@ -724,7 +724,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
                         getCaller().getExecutor().newChild(childFSM);
                     }
 
-                    eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
+                    eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
                     executor.reset();
                     executor.accessFSMSafe((cfsm)->{
                         cfsm.setRunning(true);
@@ -819,7 +819,7 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
             if (oldState instanceof FSMState) {
                 FSMState fsmState = (FSMState) oldState;
                 for (FSM childFSM : fsmState.getFSMs()) {
-                    eu.mihosoft.vsm.model.Executor executor = childFSM.getExecutor();
+                    eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
                     executor.accessFSMSafe(fsmc -> {
                         executor.exitDoActionOfState(evt, childFSM.getCurrentState());
                     });
@@ -1033,8 +1033,8 @@ public class Executor implements eu.mihosoft.vsm.model.AsyncExecutor {
     }
 
     @Override
-    public eu.mihosoft.vsm.model.Executor newChild(FSM fsm) {
-        return new Executor(fsm,this.mode,this.depth+1, this);
+    public eu.mihosoft.vsm.model.FSMExecutor newChild(FSM fsm) {
+        return new FSMExecutor(fsm,this.mode,this.depth+1, this);
     }
 
     @Override
