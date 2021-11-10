@@ -1,6 +1,6 @@
 // publishing information
 // -----------------------------------------------------------------------------
-ext.publishingInfo.artifactId =  'runtime-executor'
+ext.publishingInfo.artifactId =  'vsm-runtime-executor'
 ext.publishingInfo.groupId    =  'eu.mihosoft.vsm'
 ext.publishingInfo.versionId  =  rootProject.commonProps.get("publication.version")
 
