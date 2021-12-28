@@ -24,7 +24,7 @@ package eu.mihosoft.vsm.model;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface AsyncExecutor extends Executor {
+public interface AsyncFSMExecutor extends FSMExecutor {
     /**
      * Starts the executor and waits until the state machine has stopped.
      */

@@ -50,7 +50,7 @@ interface Guard {
 }
 
 @ExternalType(pkgName = "eu.mihosoft.vsm.model")
-interface Executor {
+interface FSMExecutor {
 }
 
 @InterfaceOnly
@@ -137,7 +137,7 @@ interface FSM extends WithName, StateChild {
     @Doc("The executor that is used to process the events sent" +
             " to this state machine. Synchronous as well as async executors" +
             " are supported.")
-    Executor getExecutor();
+    FSMExecutor getExecutor();
 
 //    @DelegateTo(className = "eu.mihosoft.vsm.model.FSMBehavior")
 //    int depth();

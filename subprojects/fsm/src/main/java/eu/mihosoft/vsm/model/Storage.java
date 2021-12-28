@@ -26,7 +26,6 @@ import vjavax.observer.Subscription;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -44,7 +43,7 @@ public final class Storage {
     private final ConcurrentMap<String, Object> map = new ConcurrentHashMap<>();
     private final ReentrantLock writeMapLock = new ReentrantLock();
 
-    private final List<Executor> listeners = new ArrayList<>();
+    private final List<FSMExecutor> listeners = new ArrayList<>();
 
     private Storage() {
         //
@@ -63,7 +62,7 @@ public final class Storage {
      * @param executor the executor to add
      * @return a subscription to cancel update notification for the specified listener
      */
-    public Subscription addListener(Executor executor) {
+    public Subscription addListener(FSMExecutor executor) {
         writeMapLock.lock();
 
         try {
@@ -174,7 +173,7 @@ public final class Storage {
     private void fireDataChangedEvent(String key, Object value) {
         writeMapLock.lock();
         try {
-            for(Executor listener : listeners) {
+            for(FSMExecutor listener : listeners) {
                 listener.trigger(Event.newBuilder().
                         withName(Events.DATA_UPDATED.name()).
                         withArgs(key)//,value) // TODO value is dangerous if not immutable

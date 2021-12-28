@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 /**
  * Executor interface for executing finite state machines (FSM).
  */
-public interface Executor {
+public interface FSMExecutor {
 
     /**
      * Triggers the specified event.
@@ -119,7 +119,7 @@ public interface Executor {
      * @param fsm the state machine to be executed
      * @return the requested executor instance
      */
-    Executor newChild(FSM fsm);
+    FSMExecutor newChild(FSM fsm);
 
     /**
      * Indicates whether there are remaining events to be processed.
