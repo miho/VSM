@@ -142,7 +142,8 @@ public interface FSMExecutor {
     void exitDoActionOfState(Event evt, State state);
 
     /**
-     * Allows save access to the managed FSM.
+     * Allows safe access to the managed FSM. If this executor is not running asynchronously
+     * this is a no-op. Otherwise, this method ensures correct locking of the FSM model.
      * TODO implement proper actor model
      * @param fsmTask task to perform
      */
