@@ -22,6 +22,7 @@
  */
 package eu.mihosoft.vsm.executor;
 
+import eu.mihosoft.asyncutils.VirtualThreadUtils;
 import eu.mihosoft.vsm.model.*;
 
 import java.text.SimpleDateFormat;
@@ -52,6 +53,9 @@ class FSMExecutor implements AsyncFSMExecutor {
     private final List<FSMExecutor> pathToRoot = new ArrayList<>();
 
     private final AsyncFSMExecutor.ExecutionMode mode;
+
+    private final ExecutorService executorService
+        = Executors.newCachedThreadPool(VirtualThreadUtils.newThreadFactory(true));
 
     private static final long MAX_EVT_CONSUMED_ACTION_TIMEOUT = 10_000 /*ms*/;
     private static final long MAX_ENTER_ACTION_TIMEOUT        = 10_000 /*ms*/;
@@ -427,7 +431,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                                     } finally {
                                         fsmLock.unlock();
                                     }
-                                }).orTimeout(MAX_EVT_CONSUMED_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).join();
+                                }, executorService).orTimeout(MAX_EVT_CONSUMED_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).join();
                             } finally {
                                 fsmLock.lock();
                             }
@@ -503,7 +507,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                     }
             };
             if(mode == ExecutionMode.PARALLEL_REGIONS) {
-                Thread thread = new Thread(r);
+                Thread thread = VirtualThreadUtils.newThread(r);
                 thread.start();
                 threads.add(thread);
             } else if(mode == ExecutionMode.SERIAL_REGIONS) {
@@ -650,7 +654,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                         } finally {
                             fsmLock.unlock();
                         }
-                    }).orTimeout(MAX_TRANSITION_ACTION_TIMEOUT,TimeUnit.MILLISECONDS).get();
+                    },executorService).orTimeout(MAX_TRANSITION_ACTION_TIMEOUT,TimeUnit.MILLISECONDS).get();
                 } catch (Exception ex) {
                     handleExecutionError(evt, consumer.getSource(), consumer.getTarget(), ex);
                     return;
@@ -680,7 +684,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                                 } finally {
                                     fsmLock.unlock();
                                 }
-                            }).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                            },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                         } finally {
                             fsmLock.lock();
                         }
@@ -727,7 +731,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                             } finally {
                                 fsmLock.unlock();
                             }
-                        }).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                        },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                     } finally {
                         fsmLock.lock();
                     }
@@ -788,7 +792,7 @@ class FSMExecutor implements AsyncFSMExecutor {
 
                 try {
                     doActionFuture = new CompletableFuture<>();
-                    doActionThread = new Thread(() -> {
+                    doActionThread = VirtualThreadUtils.newThread(() -> {
                         try {
                             doAction.execute(newState, evt);
                         } catch (Exception ex) {
@@ -870,7 +874,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                             } finally {
                                 fsmLock.unlock();
                             }
-                        }).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                        },executorService).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                     } finally {
                         fsmLock.lock();
                     }
@@ -1015,7 +1019,7 @@ class FSMExecutor implements AsyncFSMExecutor {
         getCaller().setRunning(true);
 
         var f = new CompletableFuture();
-        this.executionThread = new Thread(()->{
+        this.executionThread = VirtualThreadUtils.newThread(()->{
             try {
                 start_int();
                 f.complete(null);
@@ -1065,7 +1069,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                     e.printStackTrace();
                 }
             }
-        }).thenAccept((unused)->{
+        },executorService).thenAccept((unused)->{
             accessFSMSafe(fsm-> fsm.setRunning(false));
             reset();
         });
