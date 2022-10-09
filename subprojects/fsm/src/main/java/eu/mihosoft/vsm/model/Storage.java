@@ -33,16 +33,26 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 
 /**
- * Concurrent data storage based on a concurrent hashmap. It sends events whenever stored elements are added or removed.
- * Changes within stored elements are not reported.
+ * Concurrent data storage based on a concurrent hashmap. It sends events whenever stored elements are added, removed
+ * or updated. Changes within stored elements are not reported.
  *
  * TODO potentially allow automatic registering of vmf models (report property changes etc.)
  */
 public final class Storage {
 
+    /**
+     * The storage.
+     */
     private final ConcurrentMap<String, Object> map = new ConcurrentHashMap<>();
+
+    /**
+     * Lock used to synchronize access to the storage.
+     */
     private final ReentrantLock writeMapLock = new ReentrantLock();
 
+    /**
+     * state machine listeners.
+     */
     private final List<FSMExecutor> listeners = new ArrayList<>();
 
     private Storage() {
