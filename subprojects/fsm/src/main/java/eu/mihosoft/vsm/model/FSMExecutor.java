@@ -55,7 +55,7 @@ public interface FSMExecutor {
 
     /**
      * Triggers and processes the specified event. The executor of the state machine must
-     * not be running (via {@link Executor#isRunning()}) if this method is used to process events.
+     * not be running (via {@link FSMExecutor#isRunning()}) if this method is used to process events.
      * This method returns as soon as the triggered event and events created as consequence
      * of triggering this event have been processed.
      * @param evt event identifier
@@ -66,7 +66,7 @@ public interface FSMExecutor {
 
     /**
      * Triggers and processes the specified event. The executor of the state machine must
-     * not be running (via {@link Executor#isRunning()}) if this method is used to process events.
+     * not be running (via {@link FSMExecutor#isRunning()}) if this method is used to process events.
      * This method returns as soon as the triggered event and events created as consequence
      * of triggering this event have been processed.
      * @param evt event identifier
@@ -76,7 +76,7 @@ public interface FSMExecutor {
 
     /**
      * Triggers and processes the specified event. The executor of the state machine must
-     * not be running (via {@link Executor#isRunning()}) if this method is used to process events.
+     * not be running (via {@link FSMExecutor#isRunning()}) if this method is used to process events.
      * This method returns as soon as the triggered event and events created as consequence
      * of triggering this event have been processed.
      * @param evt event identifier
