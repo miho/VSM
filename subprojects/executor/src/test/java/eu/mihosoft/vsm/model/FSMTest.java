@@ -2443,4 +2443,100 @@ public class FSMTest {
             );
         }
     }
+
+//    @Test(timeout = 100_000)
+//    public void nestedFSMState() throws InterruptedException, ExecutionException {
+//
+//
+//        State A = State.newBuilder()
+//                .withName("A")
+//                .withOnEntryAction((s, e) -> {
+//                    System.out.println("entered state " + s.getName());
+//                })
+//                .build();
+//
+//        State C = State.newBuilder()
+//                .withName("C")
+//                .withOnEntryAction((s, e) -> {
+//                    System.out.println("entered state " + s.getName());
+//                })
+//                .build();
+//
+//        State D = State.newBuilder()
+//                .withName("D")
+//                .withOnEntryAction((s, e) -> {
+//                    System.out.println("entered state " + s.getName());
+//                })
+//                .build();
+//
+//        State E = State.newBuilder()
+//                .withName("E")
+//                .withOnEntryAction((s, ev) -> {
+//                    System.out.println("entered state " + s.getName());
+//                })
+//                .build();
+//
+//        Transition CD = Transition.newBuilder()
+//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+//                .withSource(C)
+//                .withTarget(D)
+//                .build();
+//
+//        Transition DE = Transition.newBuilder()
+//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+//                .withSource(D)
+//                .withTarget(E)
+//                .build();
+//
+//        FSM nestedFSM = FSM.newBuilder()
+//                .withName("nested FSM")
+//                .withInitialState(C)
+//                .withFinalState(E)
+//                .withOwnedState(C,D,E)
+//                .withTransitions(CD, DE)
+//                .withVerbose(true)
+//                .build();
+//
+//
+//        FSMState B = FSMState.newBuilder()
+//                .withName("B")
+//                .withFSMs(nestedFSM)
+//                .build();
+//
+//        Transition AB = Transition.newBuilder()
+//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+//                .withSource(A)
+//                .withTarget(B)
+//                .build();
+//
+//        Transition AE = Transition.newBuilder()
+//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+//                .withSource(A)
+//                .withTarget(E)
+//                .build();
+//
+//        FSM fsm1 = FSM.newBuilder()
+//                .withName("FSM")
+//                .withInitialState(A)
+//                // .withFinalState(B)
+//                .withOwnedState(A,B)
+//                .withTransitions(AB)
+//                .withVerbose(true)
+//                .build();
+//
+//        FSM fsm2= FSM.newBuilder()
+//                .withName("FSM")
+//                .withInitialState(A)
+//                // .withFinalState(B)
+//                .withOwnedState(A,B)
+//                .withTransitions(AE)
+//                .withVerbose(true)
+//                .build();
+//
+//        var executor = FSMExecutors.newAsyncExecutor(fsm2);
+//
+//        executor.startAndWait();
+//
+//    }
+
 }
