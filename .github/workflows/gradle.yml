@@ -10,16 +10,16 @@ on:
     branches: [ master ]
 
 jobs:
-  build-ubuntu-jdk11:
+  build-ubuntu-jdk17:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up JDK 11
+    - name: Set up JDK 17
       uses: actions/setup-java@v1
       with:
-        java-version: 11
+        java-version: 17
     - name: Cache Gradle packages
       uses: actions/cache@v2
       with:
@@ -34,13 +34,13 @@ jobs:
       uses: EnricoMi/publish-unit-test-result-action@v1
       if: always()
       with:
-        name: Unit Test Results (build-ubuntu-jdk11)
+        name: Unit Test Results (build-ubuntu-jdk17)
         files: subprojects/executor/build/test-results/**/*.xml  
     - name: upload test results
       uses: actions/upload-artifact@v1
       if: ${{ always() }}  
       with:
-        name: Test Results (build-ubuntu-jdk11)
+        name: Test Results (build-ubuntu-jdk17)
         path: subprojects/executor/build/reports  
 
   build-windows-jdk17:
@@ -108,34 +108,34 @@ jobs:
         path: subprojects/executor/build/reports
 
 
-  build-macos-jdk11:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up JDK 11
-      uses: actions/setup-java@v1
-      with:
-        java-version: 11
-    - name: Cache Gradle packages
-      uses: actions/cache@v2
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-        restore-keys: ${{ runner.os }}-gradle      
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew build
-    - name: Publish Unit Test Results
-      uses: EnricoMi/publish-unit-test-result-action/composite@v1
-      if: always()
-      with:
-        name: Unit Test Results (build-macos-jdk11)
-        files: subprojects/executor/build/test-results/**/*.xml  
-    - name: upload test results
-      uses: actions/upload-artifact@v1
-      if: ${{ always() }}  
-      with:
-        name: Test Results (build-macos-jdk13)
-        path: subprojects/executor/build/reports 
+#  build-ubuntu-jdk19:
+#    runs-on: macos-latest
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Set up JDK 19
+#      uses: actions/setup-java@v1
+#      with:
+#        java-version: 19
+#    - name: Cache Gradle packages
+#      uses: actions/cache@v2
+#      with:
+#        path: ~/.gradle/caches
+#        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+#        restore-keys: ${{ runner.os }}-gradle      
+#    - name: Grant execute permission for gradlew
+#      run: chmod +x gradlew
+#    - name: Build with Gradle
+#      run: ./gradlew build
+#    - name: Publish Unit Test Results
+#      uses: EnricoMi/publish-unit-test-result-action/composite@v1
+#      if: always()
+#      with:
+#        name: Unit Test Results (build-ubuntu-jdk19)
+#        files: subprojects/executor/build/test-results/**/*.xml  
+#    - name: upload test results
+#      uses: actions/upload-artifact@v1
+#      if: ${{ always() }}  
+#      with:
+#        name: Test Results (build-ubuntu-jdk19)
+#        path: subprojects/executor/build/reports

@@ -45,6 +45,8 @@ dependencies {
 
     implementation "eu.mihosoft.vmf:vmf-runtime:${rootProject.commonProps.get("vmf.version")}"
 
+    implementation "eu.mihosoft.asyncutils:asyncutils:${rootProject.commonProps.get("asyncutils.version")}"
+
     implementation project(":subprojects:fsm")
 }
 

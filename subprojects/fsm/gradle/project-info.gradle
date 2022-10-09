@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // publishing information
 // -----------------------------------------------------------------------------
-ext.publishingInfo.artifactId =  'model'
+ext.publishingInfo.artifactId =  'vsm-model'
 ext.publishingInfo.groupId    =  'eu.mihosoft.vsm'
 ext.publishingInfo.versionId  =  rootProject.commonProps.get("publication.version")
 
