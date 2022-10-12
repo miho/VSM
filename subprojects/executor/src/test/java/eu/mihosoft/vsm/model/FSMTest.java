@@ -2444,99 +2444,167 @@ public class FSMTest {
         }
     }
 
-//    @Test(timeout = 100_000)
-//    public void nestedFSMState() throws InterruptedException, ExecutionException {
-//
-//
-//        State A = State.newBuilder()
-//                .withName("A")
-//                .withOnEntryAction((s, e) -> {
-//                    System.out.println("entered state " + s.getName());
-//                })
-//                .build();
-//
-//        State C = State.newBuilder()
-//                .withName("C")
-//                .withOnEntryAction((s, e) -> {
-//                    System.out.println("entered state " + s.getName());
-//                })
-//                .build();
-//
-//        State D = State.newBuilder()
-//                .withName("D")
-//                .withOnEntryAction((s, e) -> {
-//                    System.out.println("entered state " + s.getName());
-//                })
-//                .build();
-//
-//        State E = State.newBuilder()
-//                .withName("E")
-//                .withOnEntryAction((s, ev) -> {
-//                    System.out.println("entered state " + s.getName());
-//                })
-//                .build();
-//
-//        Transition CD = Transition.newBuilder()
-//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-//                .withSource(C)
-//                .withTarget(D)
-//                .build();
-//
-//        Transition DE = Transition.newBuilder()
-//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-//                .withSource(D)
-//                .withTarget(E)
-//                .build();
-//
-//        FSM nestedFSM = FSM.newBuilder()
-//                .withName("nested FSM")
-//                .withInitialState(C)
-//                .withFinalState(E)
-//                .withOwnedState(C,D,E)
-//                .withTransitions(CD, DE)
-//                .withVerbose(true)
-//                .build();
-//
-//
-//        FSMState B = FSMState.newBuilder()
-//                .withName("B")
-//                .withFSMs(nestedFSM)
-//                .build();
-//
-//        Transition AB = Transition.newBuilder()
-//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-//                .withSource(A)
-//                .withTarget(B)
-//                .build();
-//
-//        Transition AE = Transition.newBuilder()
-//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-//                .withSource(A)
-//                .withTarget(E)
-//                .build();
-//
-//        FSM fsm1 = FSM.newBuilder()
-//                .withName("FSM")
-//                .withInitialState(A)
-//                // .withFinalState(B)
-//                .withOwnedState(A,B)
-//                .withTransitions(AB)
-//                .withVerbose(true)
-//                .build();
-//
-//        FSM fsm2= FSM.newBuilder()
-//                .withName("FSM")
-//                .withInitialState(A)
-//                // .withFinalState(B)
-//                .withOwnedState(A,B)
-//                .withTransitions(AE)
-//                .withVerbose(true)
-//                .build();
-//
-//        var executor = FSMExecutors.newAsyncExecutor(fsm2);
-//
-//        executor.startAndWait();
-//
-//    }
+    @Test(timeout = 100_000)
+    public void nestedFSMState() throws InterruptedException, ExecutionException {
+
+        //                +--------------------------------------+
+        //                | B |                                  |
+        //                |---/                                  |
+        //      +---------|--------------+                       |        +---+
+        //      |         |  +---+     +-|-+     +---+     +---+ |------->| C |
+        //    +---+       |  | D |---->| E |---->| F |---->| G | |        +---+
+        //    | A |       |  +---+     +---+     +---+     +---+ |
+        //    +---+       |                                      |
+        //                +--------------------------------------+
+
+        //  G is the final state of the nested FSM in state B
+        //  C is the final state of the top level FSM
+
+        // - Q: Does the transition from A directly to E work?
+        //      Or is the nested FSM going through D first?
+
+        var list = new ConcurrentLinkedDeque<String>();
+
+        State A = State.newBuilder()
+                .withName("A")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        State C = State.newBuilder()
+            .withName("C")
+            .withOnEntryAction((s, e) -> {
+                var msg = "entered state " + s.getName();
+                System.out.println(msg);
+                list.add(msg);
+            })
+            .build();
+
+        State D = State.newBuilder()
+                .withName("D")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        State E = State.newBuilder()
+                .withName("E")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        State F = State.newBuilder()
+                .withName("F")
+                .withOnEntryAction((s, ev) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        State G = State.newBuilder()
+            .withName("G")
+            .withOnEntryAction((s, ev) -> {
+                var msg = "entered state " + s.getName();
+                System.out.println(msg);
+                list.add(msg);
+            })
+            .build();
+
+        Transition DE = Transition.newBuilder()
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(D)
+                .withTarget(E)
+                .build();
+
+        Transition EF = Transition.newBuilder()
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(E)
+                .withTarget(F)
+                .build();
+
+        Transition FG = Transition.newBuilder()
+            .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+            .withSource(F)
+            .withTarget(G)
+            .build();
+
+        FSM nestedFSM = FSM.newBuilder()
+                .withName("nested FSM")
+                .withInitialState(D)
+                .withFinalState(G)
+                .withOwnedState(D,E,F,G)
+                .withTransitions(DE, EF, FG)
+                .withVerbose(true)
+                .build();
+
+        FSMState B = FSMState.newBuilder()
+                .withName("B")
+                .withOnEntryAction((s, ev) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withFSMs(nestedFSM)
+                .build();
+
+        Transition AB = Transition.newBuilder()
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(A)
+                .withTarget(B)
+                .build();
+
+        Transition AE = Transition.newBuilder()
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(A)
+                .withTarget(E)
+                .build();
+
+        Transition BC = Transition.newBuilder()
+            .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+            .withSource(B)
+            .withTarget(C)
+            .build();
+
+        FSM fsm1 = FSM.newBuilder()
+                .withName("FSM")
+                .withInitialState(A)
+                .withFinalState(C)
+                .withOwnedState(A,B,C)
+                .withTransitions(AB,BC)
+                .withVerbose(true)
+                .build();
+
+        FSM fsm2= FSM.newBuilder()
+                .withName("FSM")
+                .withInitialState(A)
+                .withFinalState(C)
+                .withOwnedState(A,B,C)
+                .withTransitions(AE,BC)
+                .withVerbose(true)
+                .build();
+
+        var executor = FSMExecutors.newAsyncExecutor(fsm2);
+
+        executor.startAndWait();
+
+        Assert.assertEquals(List.of(
+            "entered state A",
+            "entered state B",
+            "entered state E",
+            "entered state F",
+            "entered state G",
+            "entered state C"
+        ), list);
+
+    }
 
 }
