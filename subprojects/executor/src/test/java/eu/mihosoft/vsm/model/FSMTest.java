@@ -2450,11 +2450,12 @@ public class FSMTest {
         //                +--------------------------------------+
         //                | B |                                  |
         //                |---/                                  |
-        //      +---------|--------------+                       |        +---+
-        //      |         |  +---+     +-|-+     +---+     +---+ |------->| C |
-        //    +---+       |  | D |---->| E |---->| F |---->| G | |        +---+
-        //    | A |       |  +---+     +---+     +---+     +---+ |
-        //    +---+       |                                      |
+        //      +---------|--------------+                       |
+        //      |         |              |                       |
+        //    +---+       |  +---+     +-v-+     +---+     +---+ |      +---+
+        //    | A |       |  | D |---->| E |---->| F |---->| G | |----->| C |
+        //    +---+       |  +---+     +---+     +---+     +---+ |      +---+
+        //                |                                      |
         //                +--------------------------------------+
 
         //  G is the final state of the nested FSM in state B
@@ -2556,11 +2557,11 @@ public class FSMTest {
                 .withFSMs(nestedFSM)
                 .build();
 
-        Transition AB = Transition.newBuilder()
-                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-                .withSource(A)
-                .withTarget(B)
-                .build();
+//        Transition AB = Transition.newBuilder()
+//                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+//                .withSource(A)
+//                .withTarget(B)
+//                .build();
 
         Transition AE = Transition.newBuilder()
                 .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
@@ -2574,21 +2575,27 @@ public class FSMTest {
             .withTarget(C)
             .build();
 
-        FSM fsm1 = FSM.newBuilder()
-                .withName("FSM")
-                .withInitialState(A)
-                .withFinalState(C)
-                .withOwnedState(A,B,C)
-                .withTransitions(AB,BC)
-                .withVerbose(true)
-                .build();
+//        FSM fsm1 = FSM.newBuilder()
+//                .withName("FSM")
+//                .withInitialState(A)
+//                .withFinalState(C)
+//                .withOwnedState(A,B,C)
+//                .withTransitions(
+//                    AB,
+//                    BC
+//                )
+//                .withVerbose(true)
+//                .build();
 
         FSM fsm2= FSM.newBuilder()
                 .withName("FSM")
                 .withInitialState(A)
                 .withFinalState(C)
                 .withOwnedState(A,B,C)
-                .withTransitions(AE,BC)
+                .withTransitions(
+                    AE,
+                    BC
+                )
                 .withVerbose(true)
                 .build();
 

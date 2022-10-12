@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
  */
 class FSMExecutor implements AsyncFSMExecutor {
 
-
     private final Deque<Event> evtQueue = new ConcurrentLinkedDeque<>();
     private volatile Thread doActionThread;
     private volatile CompletableFuture<Void> doActionFuture;
@@ -260,8 +259,10 @@ class FSMExecutor implements AsyncFSMExecutor {
         boolean consumed = false;
         State prevState = getCaller().getCurrentState();
 
+        System.out.println("!!!PREV STATE: " + prevState.getName());
 
-        // if we are in a state with nested fsm we process any upcoming events even if we don't
+
+        // if we are in a state with nested fsm(s) we process any upcoming events even if we don't
         // currently have events in our queue
         if (prevState instanceof FSMState) {
             FSMState fsmState = (FSMState) prevState;
@@ -606,7 +607,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                 }
 
                 State dstParent;
-                if(i<pathToRootDst.size()) {
+                if(i < pathToRootDst.size()) {
                     dstParent = pathToRootDst.get(i);
 
                 } else {
@@ -615,6 +616,9 @@ class FSMExecutor implements AsyncFSMExecutor {
 
                 if(srcParent!=null && dstParent!=null && srcParent == dstParent) {
                     //LCA found
+                    System.out.println("  -> LCA found:    " + srcParent.getName());
+                    // print path to root
+                    System.out.println("  -> Path to root: " + pathToRootSrc.stream().map(s->s.getName()).collect(Collectors.toList()));
                     break;
                 } else {
                     if(srcParent!=null) {
