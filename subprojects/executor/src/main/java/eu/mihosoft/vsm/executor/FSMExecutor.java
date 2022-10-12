@@ -255,16 +255,13 @@ class FSMExecutor implements AsyncFSMExecutor {
             fsmLock.unlock();
         }
 
-
         boolean consumed = false;
         State prevState = getCaller().getCurrentState();
-
-        System.out.println("!!!PREV STATE: " + prevState.getName());
-
 
         // if we are in a state with nested fsm(s) we process any upcoming events even if we don't
         // currently have events in our queue
         if (prevState instanceof FSMState) {
+
             FSMState fsmState = (FSMState) prevState;
             for (FSM childFSM : fsmState.getFSMs()) {
                 if (childFSM != null) {
@@ -284,7 +281,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                         + fsmState.getFSMs().stream().map(cfsm -> cfsm.getName()).collect(Collectors.toList()));
             }
         }
-
 
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
