@@ -65,5 +65,5 @@ allprojects {
 
 
 wrapper {
-    gradleVersion = '7.6-20221006233039+0000'
+    gradleVersion = '7.6'
 }

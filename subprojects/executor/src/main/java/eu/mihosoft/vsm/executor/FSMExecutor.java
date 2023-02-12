@@ -56,6 +56,8 @@ class FSMExecutor implements AsyncFSMExecutor {
     private final ExecutorService executorService
         = Executors.newCachedThreadPool(VirtualThreadUtils.newThreadFactory(true));
 
+    private final Map<Object, State> initialStates = new HashMap<>();
+
     private static final long MAX_EVT_CONSUMED_ACTION_TIMEOUT = 10_000 /*ms*/;
     private static final long MAX_ENTER_ACTION_TIMEOUT        = 10_000 /*ms*/;
     private static final long MAX_EXIT_ACTION_TIMEOUT         = 10_000 /*ms*/;
@@ -388,6 +390,27 @@ class FSMExecutor implements AsyncFSMExecutor {
 
                     {
                         prevState = currentState;
+
+                        // if target is a state within fsm states (fsm states in the line of ancestors)
+                        // we need to drill into fsm state and change the "initial" state of the fsm state(s)
+                        // to the target state of the transition and ancestors of the target state.
+
+                        // check ancestors
+                        State target = consumer.getTarget();
+                        var ancestorsOfTarget = pathToRootExcluding(target).stream()
+                                .filter(s->s instanceof FSMState).collect(Collectors.toList());
+                        var ancestorsOfThis = pathToRootExcluding(currentState).stream()
+                                .filter(s->s instanceof FSMState).collect(Collectors.toList());
+
+                        // get sub-list of ancestors where all ancestors of this fsm are removed
+                        var fsmAncestors =
+
+                        // for each of those set the initial state to the nested fsm state from the
+                        // ancestor list of the target state, set the target state as initial state
+                        // in the deepest nested fsm state
+
+
+
                         performStateTransition(evt, consumer.getSource(), consumer.getTarget(), consumer);
                         stateChanged = prevState != getCaller().getCurrentState();
                         if (stateChanged) {

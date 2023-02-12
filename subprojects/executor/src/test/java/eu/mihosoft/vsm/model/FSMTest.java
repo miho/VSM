@@ -2444,7 +2444,7 @@ public class FSMTest {
         }
     }
 
-    @Test(timeout = 100_000)
+    @Test(timeout = 10_000)
     public void nestedFSMState() throws InterruptedException, ExecutionException {
 
         //                +--------------------------------------+
@@ -2594,6 +2594,7 @@ public class FSMTest {
                 .withOwnedState(A,B,C)
                 .withTransitions(
                     AE,
+//                    AB,
                     BC
                 )
                 .withVerbose(true)
