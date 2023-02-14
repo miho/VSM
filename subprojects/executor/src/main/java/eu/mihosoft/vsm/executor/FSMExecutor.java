@@ -232,6 +232,10 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     @Override
     public boolean processRemainingEvents() {
+        return processRemainingEvents(null);
+    }
+
+    private boolean processRemainingEvents(State initialState) {
 
         // everything modified concurrently with start(), reset(), stop() etc. must be inside
         // locked code block
@@ -248,7 +252,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                 performStateTransition(
                         Event.newBuilder().withName(FSMEvents.INIT.getName()).build(),
                         null,
-                        getCaller().getInitialState(),
+                        (initialState==null?getCaller().getInitialState():initialState),
                         null
                 );
             }
@@ -399,15 +403,20 @@ class FSMExecutor implements AsyncFSMExecutor {
                         State target = consumer.getTarget();
                         var ancestorsOfTarget = pathToRootExcluding(target).stream()
                                 .filter(s->s instanceof FSMState).collect(Collectors.toList());
-                        var ancestorsOfThis = pathToRootExcluding(currentState).stream()
-                                .filter(s->s instanceof FSMState).collect(Collectors.toList());
 
-                        // get sub-list of ancestors where all ancestors of this fsm are removed
-                        var fsmAncestors =
+                        // get intersection of this with ancestorsOfTarget
+                        var intersection = ancestorsOfTarget.stream().filter(s->s instanceof FSMState).collect(Collectors.toList());
 
-                        // for each of those set the initial state to the nested fsm state from the
-                        // ancestor list of the target state, set the target state as initial state
-                        // in the deepest nested fsm state
+
+//                        var ancestorsOfThis = pathToRootExcluding(currentState).stream()
+//                                .filter(s->s instanceof FSMState).collect(Collectors.toList());
+
+//                        // get sub-list of ancestors where all ancestors of this fsm are removed
+//                        var fsmAncestors =
+//
+//                        // for each of those set the initial state to the nested fsm state from the
+//                        // ancestor list of the target state, set the target state as initial state
+//                        // in the deepest nested fsm state
 
 
 
