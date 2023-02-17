@@ -45,7 +45,7 @@ import java.util.stream.IntStream;
 public class FSMTest {
 
     private static final AsyncFSMExecutor.ExecutionMode MODE
-        = AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
+            = AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
 
     private static final int NUM_ITERATIONS_LARGE_TESTS = 5;
     private static final int NUM_ITERATIONS_SMALL_TESTS = 10;
@@ -67,87 +67,87 @@ public class FSMTest {
         for (int i = 0; i < NUM_ITERATIONS_LARGE_TESTS; i++) {
 
             State idleState = State.newBuilder().withName("idle").withOnEntryAction(
-                (s, e) -> {
-                    System.out.println("Machine Idle State");
-                }).build();
+                    (s, e) -> {
+                        System.out.println("Machine Idle State");
+                    }).build();
 
             State cardInserted = State.newBuilder().withName("cardInserted")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("Card Inserted State");
-                }).build();
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("Card Inserted State");
+                    }).build();
 
             State pinEnteredState = State.newBuilder().withName("pinEntered")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("Pin Entered State");
-                }).build();
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("Pin Entered State");
+                    }).build();
 
             State amountRequested = State.newBuilder().withName("amountRequested")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("Amount Requested State");
-                }).build();
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("Amount Requested State");
+                    }).build();
 
             Transition insertCardTransition = Transition.newBuilder().withTrigger("insert-card")
-                .withGuard((t, evt) -> {
-                    if (evt.getArgs().isEmpty()) return false;
-                    return Objects.equals("DE6594339437", evt.getArgs().get(0));
-                })
-                .withActions((s, e) -> {
-                    System.out.println("-> correct card inserted");
-                }).withSource(idleState).withTarget(cardInserted).build();
+                    .withGuard((t, evt) -> {
+                        if (evt.getArgs().isEmpty()) return false;
+                        return Objects.equals("DE6594339437", evt.getArgs().get(0));
+                    })
+                    .withActions((s, e) -> {
+                        System.out.println("-> correct card inserted");
+                    }).withSource(idleState).withTarget(cardInserted).build();
 
             Transition enterPinTransition = Transition.newBuilder().withTrigger("enter-pin")
-                .withGuard((t, evt) -> {
-                    System.out.println("-> pin entered");
-                    System.out.println("-> checking...");
+                    .withGuard((t, evt) -> {
+                        System.out.println("-> pin entered");
+                        System.out.println("-> checking...");
 
-                    sleepRandom(0, 250);
+                        sleepRandom(0, 250);
 
-                    if (evt.getArgs().isEmpty()) {
-                        return false;
-                    }
+                        if (evt.getArgs().isEmpty()) {
+                            return false;
+                        }
 
-                    return Objects.equals(1234, evt.getArgs().get(0));
-                }).withActions((s, e) -> {
-                    System.out.println("-> valid.");
-                }).withSource(cardInserted).withTarget(pinEnteredState).build();
+                        return Objects.equals(1234, evt.getArgs().get(0));
+                    }).withActions((s, e) -> {
+                        System.out.println("-> valid.");
+                    }).withSource(cardInserted).withTarget(pinEnteredState).build();
 
             Transition requestAmountTransition = Transition.newBuilder().withTrigger("request-amount")
-                .withActions((s, e) -> {
-                    System.out.println("-> amount-requested");
-                }).withSource(pinEnteredState).withTarget(amountRequested).build();
+                    .withActions((s, e) -> {
+                        System.out.println("-> amount-requested");
+                    }).withSource(pinEnteredState).withTarget(amountRequested).build();
 
             Transition moneyDispatchedTransition = Transition.newBuilder().withTrigger("dispatch-money")
-                .withActions((s, e) -> {
-                    System.out.println("-> checking whether requested amount is available");
-                    sleepRandom(0, 80);
-                    System.out.println("-> money-dispatched");
-                })
-                .withSource(amountRequested)
-                .withTarget(idleState)
-                .build();
+                    .withActions((s, e) -> {
+                        System.out.println("-> checking whether requested amount is available");
+                        sleepRandom(0, 80);
+                        System.out.println("-> money-dispatched");
+                    })
+                    .withSource(amountRequested)
+                    .withTarget(idleState)
+                    .build();
 
             State errorState = State.newBuilder()
-                .withName("Error")
-                .withOnEntryAction((state, event) -> {
-                    System.out.println("ERROR: ");
-                })
-                .build();
+                    .withName("Error")
+                    .withOnEntryAction((state, event) -> {
+                        System.out.println("ERROR: ");
+                    })
+                    .build();
 
             FSM fsm = FSM.newBuilder()
-                .withName("ATM")
-                .withOwnedState(
-                    idleState, cardInserted, pinEnteredState, amountRequested, errorState
-                )
-                .withInitialState(idleState)
-                .withErrorState(errorState)
-                .withTransitions(
-                    insertCardTransition,
-                    enterPinTransition,
-                    requestAmountTransition,
-                    moneyDispatchedTransition
-                )
-                .withVerbose(true)
-                .build();
+                    .withName("ATM")
+                    .withOwnedState(
+                            idleState, cardInserted, pinEnteredState, amountRequested, errorState
+                    )
+                    .withInitialState(idleState)
+                    .withErrorState(errorState)
+                    .withTransitions(
+                            insertCardTransition,
+                            enterPinTransition,
+                            requestAmountTransition,
+                            moneyDispatchedTransition
+                    )
+                    .withVerbose(true)
+                    .build();
 
             var visitedStates = Collections.synchronizedList(new ArrayList<State>());
 
@@ -155,9 +155,9 @@ public class FSMTest {
                 var oldV = (State) change.propertyChange().orElseThrow().oldValue();
                 var newV = (State) change.propertyChange().orElseThrow().newValue();
                 System.out.println(Thread.currentThread() + " > transitioned from " +
-                    (oldV == null ? "<undefined>" : oldV.getName()) +
-                    " to " +
-                    (newV == null ? "<undefined>" : newV.getName()));
+                        (oldV == null ? "<undefined>" : oldV.getName()) +
+                        " to " +
+                        (newV == null ? "<undefined>" : newV.getName()));
                 if (newV != null) {
                     visitedStates.add(newV);
                 }
@@ -190,19 +190,19 @@ public class FSMTest {
             executor.stop();
 
             System.out.println("> Visited States: "
-                + visitedStates.stream().map(s -> s.getName()).
-                collect(Collectors.joining(", "))
+                    + visitedStates.stream().map(s -> s.getName()).
+                    collect(Collectors.joining(", "))
             );
 
             System.out.println("> number of active threads: " + ManagementFactory.getThreadMXBean().getThreadCount());
 
             assertThat(visitedStates, contains(
-                    idleState,
-                    cardInserted,
-                    pinEnteredState,
-                    amountRequested,
-                    idleState
-                )
+                            idleState,
+                            cardInserted,
+                            pinEnteredState,
+                            amountRequested,
+                            idleState
+                    )
             );
 
         }
@@ -246,23 +246,23 @@ public class FSMTest {
             fsm.setRunning(false);
 
             var expectedEvtList = Arrays.asList(
-                "enter state a",               // <- fsm:init
-                "exit state a",                // <- myEvent 1
-                "enter state b",               //
-                "exit state b",                // <- myEvent 2
-                "enter state c",               //
+                    "enter state a",               // <- fsm:init
+                    "exit state a",                // <- myEvent 1
+                    "enter state b",               //
+                    "exit state b",                // <- myEvent 2
+                    "enter state c",               //
 //                "enter do-action-in-state-c",  // test without enter do-action-in-state-c, because position may vary
-                "enter state ca1",             //
-                "enter state ca2",             //
-                "exit state ca2",              // <- myEvent 2
-                "enter state cb2",             //
-                "exit state cb2",              // (fsm reached final state)
-                "exit state ca1",              // <- myEvent 1
-                "enter state cb1",             //
-                "exit state cb1",              // (fsm reached final state)
-                "exit do-action-in-state-c",   // <- timeout (sleep)
-                "exit state c",                //
-                "enter state a"                //
+                    "enter state ca1",             //
+                    "enter state ca2",             //
+                    "exit state ca2",              // <- myEvent 2
+                    "enter state cb2",             //
+                    "exit state cb2",              // (fsm reached final state)
+                    "exit state ca1",              // <- myEvent 1
+                    "enter state cb1",             //
+                    "exit state cb1",              // (fsm reached final state)
+                    "exit do-action-in-state-c",   // <- timeout (sleep)
+                    "exit state c",                //
+                    "enter state a"                //
             );
 
             // test without enter do-action-in-state-c, because position may vary
@@ -299,24 +299,24 @@ public class FSMTest {
             fsm.setRunning(false);
 
             var expectedEvtList = Arrays.asList(
-                "enter state a",                   // <- fsm:init
-                "exit state a",                    // <- myEvent 1
-                "enter state b",                   //
-                "exit state b",                    // <- myEvent 2
-                "enter state c",                   //
+                    "enter state a",                   // <- fsm:init
+                    "exit state a",                    // <- myEvent 1
+                    "enter state b",                   //
+                    "exit state b",                    // <- myEvent 2
+                    "enter state c",                   //
 //                "enter do-action-in-state-c",      // test without enter do-action-in-state-c, because position may vary
-                "enter state ca1",                 //
-                "enter state ca2",                 //
-                "exit state ca2",                  // <- myEvent 2
-                "enter state cb2",                 //
-                "exit state cb2",                  // (fsm reached final state)
-                "exit state ca1",                  // <- myEvent 1
-                "enter state cb1",                 //
-                "exit state cb1",                  // (fsm reached final state)
-                "interrupt do-action-in-state-c",  // <- myEvent 1
-                "exit do-action-in-state-c",       //
-                "exit state c",                    //
-                "enter state a"                    //
+                    "enter state ca1",                 //
+                    "enter state ca2",                 //
+                    "exit state ca2",                  // <- myEvent 2
+                    "enter state cb2",                 //
+                    "exit state cb2",                  // (fsm reached final state)
+                    "exit state ca1",                  // <- myEvent 1
+                    "enter state cb1",                 //
+                    "exit state cb1",                  // (fsm reached final state)
+                    "interrupt do-action-in-state-c",  // <- myEvent 1
+                    "exit do-action-in-state-c",       //
+                    "exit state c",                    //
+                    "enter state a"                    //
             );
 
             // test without enter do-action-in-state-c, because position may vary
@@ -351,23 +351,23 @@ public class FSMTest {
             executor.stop();
 
             var expectedEvtList = Arrays.asList(
-                "enter state a",               // <- fsm:init
-                "exit state a",                // <- myEvent 1
-                "enter state b",               //
-                "exit state b",                // <- myEvent 2
-                "enter state c",               //
+                    "enter state a",               // <- fsm:init
+                    "exit state a",                // <- myEvent 1
+                    "enter state b",               //
+                    "exit state b",                // <- myEvent 2
+                    "enter state c",               //
 //                "enter do-action-in-state-c",  // test without enter do-action-in-state-c, because position may vary
-                "enter state ca1",             //
-                "enter state ca2",             //
-                "exit state ca2",              // <- myEvent 2
-                "enter state cb2",             //
-                "exit state cb2",              // (fsm reached final state)
-                "exit state ca1",              // <- myEvent 1
-                "enter state cb1",             //
-                "exit state cb1",              // (fsm reached final state)
-                "exit do-action-in-state-c",   // <- timeout (sleep)
-                "exit state c",                //
-                "enter state a"                //
+                    "enter state ca1",             //
+                    "enter state ca2",             //
+                    "exit state ca2",              // <- myEvent 2
+                    "enter state cb2",             //
+                    "exit state cb2",              // (fsm reached final state)
+                    "exit state ca1",              // <- myEvent 1
+                    "enter state cb1",             //
+                    "exit state cb1",              // (fsm reached final state)
+                    "exit do-action-in-state-c",   // <- timeout (sleep)
+                    "exit state c",                //
+                    "enter state a"                //
             );
 
             // test without enter do-action-in-state-c, because position may vary
@@ -405,24 +405,24 @@ public class FSMTest {
             executor.stop();
 
             var expectedEvtList = Arrays.asList(
-                "enter state a",                   // <- fsm:init
-                "exit state a",                    // <- myEvent 1
-                "enter state b",                   //
-                "exit state b",                    // <- myEvent 2
-                "enter state c",                   //
+                    "enter state a",                   // <- fsm:init
+                    "exit state a",                    // <- myEvent 1
+                    "enter state b",                   //
+                    "exit state b",                    // <- myEvent 2
+                    "enter state c",                   //
 //                "enter do-action-in-state-c",      // test without enter do-action-in-state-c, because position may vary
-                "enter state ca1",                 //
-                "enter state ca2",                 //
-                "exit state ca2",                  // <- myEvent 2
-                "enter state cb2",                 //
-                "exit state cb2",                  // (fsm reached final state)
-                "exit state ca1",                  // <- myEvent 1
-                "enter state cb1",                 //
-                "exit state cb1",                  // (fsm reached final state)
-                "interrupt do-action-in-state-c",  // <- myEvent 1
-                "exit do-action-in-state-c",       //
-                "exit state c",                    //
-                "enter state a"                    //
+                    "enter state ca1",                 //
+                    "enter state ca2",                 //
+                    "exit state ca2",                  // <- myEvent 2
+                    "enter state cb2",                 //
+                    "exit state cb2",                  // (fsm reached final state)
+                    "exit state ca1",                  // <- myEvent 1
+                    "enter state cb1",                 //
+                    "exit state cb1",                  // (fsm reached final state)
+                    "interrupt do-action-in-state-c",  // <- myEvent 1
+                    "exit do-action-in-state-c",       //
+                    "exit state c",                    //
+                    "enter state a"                    //
             );
 
             // test without enter do-action-in-state-c, because position may vary
@@ -458,24 +458,24 @@ public class FSMTest {
             executor.stop();
 
             var expectedEvtList = Arrays.asList(
-                "enter state a",                   // <- fsm:init
-                "exit state a",                    // <- myEvent 1
-                "enter state b",                   //
-                "exit state b",                    // <- myEvent 2
-                "enter state c",                   //
+                    "enter state a",                   // <- fsm:init
+                    "exit state a",                    // <- myEvent 1
+                    "enter state b",                   //
+                    "exit state b",                    // <- myEvent 2
+                    "enter state c",                   //
 //                "enter do-action-in-state-c",      // test without enter do-action-in-state-c, because position may vary
-                "enter state ca1",                 //
-                "enter state ca2",                 //
-                "exit state ca2",                  // <- myEvent 2
-                "enter state cb2",                 //
-                "exit state cb2",                  // (fsm reached final state)
-                "exit state ca1",                  // <- myEvent 1
-                "enter state cb1",                 //
-                "exit state cb1",                  // (fsm reached final state)
-                "interrupt do-action-in-state-c",  // <- myEvent 1
-                "exit do-action-in-state-c",       //
-                "exit state c",                    //
-                "enter state a"                    //
+                    "enter state ca1",                 //
+                    "enter state ca2",                 //
+                    "exit state ca2",                  // <- myEvent 2
+                    "enter state cb2",                 //
+                    "exit state cb2",                  // (fsm reached final state)
+                    "exit state ca1",                  // <- myEvent 1
+                    "enter state cb1",                 //
+                    "exit state cb1",                  // (fsm reached final state)
+                    "interrupt do-action-in-state-c",  // <- myEvent 1
+                    "exit do-action-in-state-c",       //
+                    "exit state c",                    //
+                    "enter state a"                    //
             );
 
             // test without enter do-action-in-state-c, because position may vary
@@ -508,170 +508,170 @@ public class FSMTest {
         final var enterExitList = Collections.synchronizedList(enterExitListOrig);
 
         State stateA = State.newBuilder()
-            .withName("State A")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("enter state a");
-                enterExitList.add("enter state a");
-            })
+                .withName("State A")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("enter state a");
+                    enterExitList.add("enter state a");
+                })
 //                .withDoAction()
-            .withOnExitAction((s, e) -> {
-                System.out.println("exit state a");
-                enterExitList.add("exit state a");
-            })
-            .build();
+                .withOnExitAction((s, e) -> {
+                    System.out.println("exit state a");
+                    enterExitList.add("exit state a");
+                })
+                .build();
         State stateB = State.newBuilder()
-            .withName("State B")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("enter state b");
-                enterExitList.add("enter state b");
-            })
+                .withName("State B")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("enter state b");
+                    enterExitList.add("enter state b");
+                })
 //                .withDoAction()
-            .withOnExitAction((s, e) -> {
-                System.out.println("exit state b");
-                enterExitList.add("exit state b");
-            })
-            .build();
+                .withOnExitAction((s, e) -> {
+                    System.out.println("exit state b");
+                    enterExitList.add("exit state b");
+                })
+                .build();
 
         State stateCA1 = State.newBuilder()
-            .withName("State CA1")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("  enter state ca1");
-                enterExitList.add("enter state ca1");
-            })
+                .withName("State CA1")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("  enter state ca1");
+                    enterExitList.add("enter state ca1");
+                })
 //                .withDoAction()
-            .withOnExitAction((s, e) -> {
-                System.out.println("  exit state ca1");
-                enterExitList.add("exit state ca1");
-            })
-            .build();
+                .withOnExitAction((s, e) -> {
+                    System.out.println("  exit state ca1");
+                    enterExitList.add("exit state ca1");
+                })
+                .build();
 
         State stateCB1 = State.newBuilder()
-            .withName("State CB1")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("  enter state cb1");
-                enterExitList.add("enter state cb1");
-            })
+                .withName("State CB1")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("  enter state cb1");
+                    enterExitList.add("enter state cb1");
+                })
 //                .withDoAction()
-            .withOnExitAction((s, e) -> {
-                System.out.println("  exit state cb1");
-                enterExitList.add("exit state cb1");
-            })
-            .build();
+                .withOnExitAction((s, e) -> {
+                    System.out.println("  exit state cb1");
+                    enterExitList.add("exit state cb1");
+                })
+                .build();
 
         State stateCA2 = State.newBuilder()
-            .withName("State CA2")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("  enter state ca2");
-                enterExitList.add("enter state ca2");
-            })
+                .withName("State CA2")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("  enter state ca2");
+                    enterExitList.add("enter state ca2");
+                })
 //                .withDoAction()
-            .withOnExitAction((s, e) -> {
-                System.out.println("  exit state ca2");
-                enterExitList.add("exit state ca2");
-            })
-            .build();
+                .withOnExitAction((s, e) -> {
+                    System.out.println("  exit state ca2");
+                    enterExitList.add("exit state ca2");
+                })
+                .build();
 
         State stateCB2 = State.newBuilder()
-            .withName("State CB2")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("  enter state cb2");
-                enterExitList.add("enter state cb2");
-            })
+                .withName("State CB2")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("  enter state cb2");
+                    enterExitList.add("enter state cb2");
+                })
 //                .withDoAction()
-            .withOnExitAction((s, e) -> {
-                System.out.println("  exit state cb2");
-                enterExitList.add("exit state cb2");
-            })
-            .build();
+                .withOnExitAction((s, e) -> {
+                    System.out.println("  exit state cb2");
+                    enterExitList.add("exit state cb2");
+                })
+                .build();
 
 
         FSMState stateC = FSMState.newBuilder()
-            .withName("State C")
-            .withOnEntryAction((s, e) -> {
-                System.out.println("enter state c");
-                enterExitList.add("enter state c");
-            })
-            .withOnExitAction((s, e) -> {
-                System.out.println("exit state c");
-                enterExitList.add("exit state c");
-            })
-            .withDoAction((s, e) -> {
-                try {
-                    System.out.println("enter do-action-in-state-c");
-                    enterExitList.add("enter do-action-in-state-c");
-                    Thread.sleep(1000);
-                } catch (InterruptedException interruptedException) {
-                    System.out.println("interrupt do-action-in-state-c");
-                    enterExitList.add("interrupt do-action-in-state-c");
-                    Thread.currentThread().interrupt();
-                } finally {
-                    System.out.println("exit do-action-in-state-c");
-                    enterExitList.add("exit do-action-in-state-c");
-                }
-            })
-            .withFSMs(
-                FSM.newBuilder()
-                    .withName("FSM C1")
+                .withName("State C")
+                .withOnEntryAction((s, e) -> {
+                    System.out.println("enter state c");
+                    enterExitList.add("enter state c");
+                })
+                .withOnExitAction((s, e) -> {
+                    System.out.println("exit state c");
+                    enterExitList.add("exit state c");
+                })
+                .withDoAction((s, e) -> {
+                    try {
+                        System.out.println("enter do-action-in-state-c");
+                        enterExitList.add("enter do-action-in-state-c");
+                        Thread.sleep(1000);
+                    } catch (InterruptedException interruptedException) {
+                        System.out.println("interrupt do-action-in-state-c");
+                        enterExitList.add("interrupt do-action-in-state-c");
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        System.out.println("exit do-action-in-state-c");
+                        enterExitList.add("exit do-action-in-state-c");
+                    }
+                })
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("FSM C1")
 //                                .withVerbose(true)
-                    .withOwnedState(stateCA1, stateCB1)
-                    .withInitialState(stateCA1)
-                    .withFinalState(stateCB1)
-                    .withTransitions(
-                        Transition.newBuilder()
-                            .withSource(stateCA1)
-                            .withTarget(stateCB1)
-                            .withTrigger("myEvent1")
-                            .build()
-                    )
-                    .build(),
-                FSM.newBuilder()
-                    .withName("FSM C2")
+                                .withOwnedState(stateCA1, stateCB1)
+                                .withInitialState(stateCA1)
+                                .withFinalState(stateCB1)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withSource(stateCA1)
+                                                .withTarget(stateCB1)
+                                                .withTrigger("myEvent1")
+                                                .build()
+                                )
+                                .build(),
+                        FSM.newBuilder()
+                                .withName("FSM C2")
 //                                .withVerbose(true)
-                    .withOwnedState(stateCA2, stateCB2)
-                    .withInitialState(stateCA2)
-                    .withFinalState(stateCB2)
-                    .withTransitions(
-                        Transition.newBuilder()
-                            .withSource(stateCA2)
-                            .withTarget(stateCB2)
-                            .withTrigger("myEvent2")
-                            .build()
-                    )
-                    .build()
-            )
-            .build();
+                                .withOwnedState(stateCA2, stateCB2)
+                                .withInitialState(stateCA2)
+                                .withFinalState(stateCB2)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withSource(stateCA2)
+                                                .withTarget(stateCB2)
+                                                .withTrigger("myEvent2")
+                                                .build()
+                                )
+                                .build()
+                )
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withVerbose(true)
-            .withInitialState(stateA)
-            .withOwnedState(stateA, stateB, stateC)
-            .withTransitions(
-                Transition.newBuilder()
-                    .withSource(stateA)
-                    .withTarget(stateB)
-                    .withTrigger("myEvent1")
-                    .build(),
-                Transition.newBuilder()
-                    .withSource(stateB)
-                    .withTarget(stateC)
-                    .withTrigger("myEvent2")
-                    .build(),
-                Transition.newBuilder()
-                    .withSource(stateC)
-                    .withTarget(stateA)
-                    .withTrigger("myEvent1")
-                    .build()
-                ,
-                Transition.newBuilder()
-                    .withSource(stateC)
-                    .withTarget(stateA)
-                    .withTrigger(finalStateInNested
-                        ? FSMExecutor.FSMEvents.FINAL_STATE.getName()
-                        : FSMExecutor.FSMEvents.DO_ACTION_DONE.getName())
-                    .build()
-            )
-            .build();
+                .withName("FSM")
+                .withVerbose(true)
+                .withInitialState(stateA)
+                .withOwnedState(stateA, stateB, stateC)
+                .withTransitions(
+                        Transition.newBuilder()
+                                .withSource(stateA)
+                                .withTarget(stateB)
+                                .withTrigger("myEvent1")
+                                .build(),
+                        Transition.newBuilder()
+                                .withSource(stateB)
+                                .withTarget(stateC)
+                                .withTrigger("myEvent2")
+                                .build(),
+                        Transition.newBuilder()
+                                .withSource(stateC)
+                                .withTarget(stateA)
+                                .withTrigger("myEvent1")
+                                .build()
+                        ,
+                        Transition.newBuilder()
+                                .withSource(stateC)
+                                .withTarget(stateA)
+                                .withTrigger(finalStateInNested
+                                        ? FSMExecutor.FSMEvents.FINAL_STATE.getName()
+                                        : FSMExecutor.FSMEvents.DO_ACTION_DONE.getName())
+                                .build()
+                )
+                .build();
 
         return fsm;
     }
@@ -684,43 +684,43 @@ public class FSMTest {
             var actualEvtList = new ArrayList<String>();
 
             FSM fsm_a = FSM.newBuilder()
-                .withName("FSM a")
-                .build();
+                    .withName("FSM a")
+                    .build();
 
             FSM fsm_a_a = FSM.newBuilder()
-                .withName("FSM a_a")
-                .build();
+                    .withName("FSM a_a")
+                    .build();
 
             FSM fsm_a_b = FSM.newBuilder()
-                .withName("FSM a_b")
-                .build();
+                    .withName("FSM a_b")
+                    .build();
 
             State state_a = FSMState.newBuilder()
-                .withName("a")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter state a"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit state a"))
-                .withFSMs(fsm_a)
-                .build();
+                    .withName("a")
+                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a"))
+                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a"))
+                    .withFSMs(fsm_a)
+                    .build();
 
             State state_a_a = FSMState.newBuilder()
-                .withName("a_a")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_a"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit state a_a"))
-                .withFSMs(fsm_a_a)
-                .build();
+                    .withName("a_a")
+                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_a"))
+                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_a"))
+                    .withFSMs(fsm_a_a)
+                    .build();
 
             State state_a_a_a = State.newBuilder()
-                .withName("a_a_a")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_a_a"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit state a_a_a"))
-                .build();
+                    .withName("a_a_a")
+                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_a_a"))
+                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_a_a"))
+                    .build();
 
             State state_a_b = FSMState.newBuilder()
-                .withName("a_b")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_b"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit state a_b"))
-                .withFSMs(fsm_a_b)
-                .build();
+                    .withName("a_b")
+                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_b"))
+                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_b"))
+                    .withFSMs(fsm_a_b)
+                    .build();
 
             fsm_a.getOwnedState().add(state_a_a);
             fsm_a.getOwnedState().add(state_a_b);
@@ -730,24 +730,24 @@ public class FSMTest {
             fsm_a_a.setInitialState(state_a_a_a);
 
             State state_a_b_a = State.newBuilder()
-                .withName("a_b_a")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_b_a"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit state a_b_a"))
-                .build();
+                    .withName("a_b_a")
+                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_b_a"))
+                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_b_a"))
+                    .build();
 
             Transition a_a__a_b_a = Transition.newBuilder()
-                .withTrigger("myEvent1")
-                .withSource(state_a_a_a)
-                .withTarget(state_a_b_a)
-                .build();
+                    .withTrigger("myEvent1")
+                    .withSource(state_a_a_a)
+                    .withTarget(state_a_b_a)
+                    .build();
 
             fsm_a_b.getOwnedState().add(state_a_b_a);
             fsm_a_b.setInitialState(state_a_b_a);
 
             FSM fsm = FSM.newBuilder()
-                .withOwnedState(state_a)
-                .withInitialState(state_a)
-                .build();
+                    .withOwnedState(state_a)
+                    .withInitialState(state_a)
+                    .build();
 
             fsm.getTransitions().add(a_a__a_b_a);
 
@@ -757,13 +757,13 @@ public class FSMTest {
             fsm.setRunning(false);
 
             var expectedEvtList = Arrays.asList(
-                "enter state a",                    // <- fsm:init
-                "enter state a_a",                  //
-                "enter state a_a_a",                //
-                "exit state a_a_a",                 // <- myEvent1
-                "exit state a_a",                   //
-                "enter state a_b",                  //
-                "enter state a_b_a"                 //
+                    "enter state a",                    // <- fsm:init
+                    "enter state a_a",                  //
+                    "enter state a_a_a",                //
+                    "exit state a_a_a",                 // <- myEvent1
+                    "exit state a_a",                   //
+                    "enter state a_b",                  //
+                    "enter state a_b_a"                 //
             );
 
             Assert.assertEquals(expectedEvtList, actualEvtList);
@@ -783,71 +783,71 @@ public class FSMTest {
         String event_unlock = "unlock";
 
         State opened = State.newBuilder()
-            .withName("opened")
-            .withOnEntryAction((s, e) -> {
-                actualEvtList.add("enter opened");
-            })
-            .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
-            .build();
+                .withName("opened")
+                .withOnEntryAction((s, e) -> {
+                    actualEvtList.add("enter opened");
+                })
+                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .build();
 
         State closed = State.newBuilder()
-            .withName("closed")
-            .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
-            .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
-            .build();
+                .withName("closed")
+                .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
+                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .build();
 
         State locked = State.newBuilder()
-            .withName("locked")
-            .withOnEntryAction((s, e) -> actualEvtList.add("enter locked"))
-            .withOnExitAction((s, e) -> actualEvtList.add("exit locked"))
-            .build();
+                .withName("locked")
+                .withOnEntryAction((s, e) -> actualEvtList.add("enter locked"))
+                .withOnExitAction((s, e) -> actualEvtList.add("exit locked"))
+                .build();
 
 
         Transition closeDoor = Transition.newBuilder()
-            .withTrigger(event_close)
-            .withSource(opened)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("closeDoor(), evt: " + e.getName());
-                actualEvtList.add("closeDoor()");
-            })
-            .build();
+                .withTrigger(event_close)
+                .withSource(opened)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("closeDoor(), evt: " + e.getName());
+                    actualEvtList.add("closeDoor()");
+                })
+                .build();
 
         Transition openDoor = Transition.newBuilder()
-            .withTrigger(event_open)
-            .withSource(closed)
-            .withTarget(opened)
-            .withActions((t, e) -> {
-                System.out.println("openDoor(), evt: " + e.getName());
-                actualEvtList.add("openDoor()");
-            })
-            .build();
+                .withTrigger(event_open)
+                .withSource(closed)
+                .withTarget(opened)
+                .withActions((t, e) -> {
+                    System.out.println("openDoor(), evt: " + e.getName());
+                    actualEvtList.add("openDoor()");
+                })
+                .build();
 
         Transition lockDoor = Transition.newBuilder()
-            .withTrigger(event_lock)
-            .withSource(closed)
-            .withTarget(locked)
-            .withActions((t, e) -> {
-                System.out.println("lockDoor(), evt: " + e.getName());
-                actualEvtList.add("lockDoor()");
-            })
-            .build();
+                .withTrigger(event_lock)
+                .withSource(closed)
+                .withTarget(locked)
+                .withActions((t, e) -> {
+                    System.out.println("lockDoor(), evt: " + e.getName());
+                    actualEvtList.add("lockDoor()");
+                })
+                .build();
 
         Transition unlockDoor = Transition.newBuilder()
-            .withTrigger(event_unlock)
-            .withSource(locked)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("unlockDoor(), evt: " + e.getName());
-                actualEvtList.add("unlockDoor()");
-            })
-            .build();
+                .withTrigger(event_unlock)
+                .withSource(locked)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("unlockDoor(), evt: " + e.getName());
+                    actualEvtList.add("unlockDoor()");
+                })
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withInitialState(opened)
-            .withOwnedState(opened, closed, locked)
-            .withTransitions(openDoor, closeDoor, lockDoor, unlockDoor)
-            .build();
+                .withInitialState(opened)
+                .withOwnedState(opened, closed, locked)
+                .withTransitions(openDoor, closeDoor, lockDoor, unlockDoor)
+                .build();
 
         var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
@@ -867,35 +867,35 @@ public class FSMTest {
         fsm.setRunning(false);
 
         var expectedEvtList = Arrays.asList(
-            "enter opened",  // <- fsm:init
+                "enter opened",  // <- fsm:init
 
-            "exit opened",
-            "closeDoor()",
-            "enter closed",
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
 
-            "exit closed",
-            "lockDoor()",
-            "enter locked",
+                "exit closed",
+                "lockDoor()",
+                "enter locked",
 
-            "exit locked",
-            "unlockDoor()",
-            "enter closed",
+                "exit locked",
+                "unlockDoor()",
+                "enter closed",
 
-            "exit closed",
-            "openDoor()",
-            "enter opened",
+                "exit closed",
+                "openDoor()",
+                "enter opened",
 
-            // not "lockDoor()" because it's invalid
+                // not "lockDoor()" because it's invalid
 
-            "exit opened",
-            "closeDoor()",
-            "enter closed",
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
 
-            "exit closed",
-            "lockDoor()",
-            "enter locked"
+                "exit closed",
+                "lockDoor()",
+                "enter locked"
 
-            // not "openDoor()" because it's invalid
+                // not "openDoor()" because it's invalid
         );
 
         Assert.assertEquals(expectedEvtList, actualEvtList);
@@ -915,70 +915,70 @@ public class FSMTest {
         AtomicBoolean lockedState = new AtomicBoolean();
 
         State opened = State.newBuilder()
-            .withName("opened")
-            .withOnEntryAction((s, e) -> {
-                actualEvtList.add("enter opened");
-            })
-            .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
-            .build();
+                .withName("opened")
+                .withOnEntryAction((s, e) -> {
+                    actualEvtList.add("enter opened");
+                })
+                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .build();
 
         State closed = State.newBuilder()
-            .withName("closed")
-            .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
-            .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
-            .build();
+                .withName("closed")
+                .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
+                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .build();
 
 
         Transition closeDoor = Transition.newBuilder()
-            .withTrigger(event_close)
-            .withSource(opened)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("closeDoor(), evt: " + e.getName());
-                actualEvtList.add("closeDoor()");
-            })
-            .build();
+                .withTrigger(event_close)
+                .withSource(opened)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("closeDoor(), evt: " + e.getName());
+                    actualEvtList.add("closeDoor()");
+                })
+                .build();
 
         Transition openDoor = Transition.newBuilder()
-            .withTrigger(event_open)
-            .withSource(closed)
-            .withTarget(opened)
-            .withGuard((transition, event) -> !lockedState.get())
-            .withActions((t, e) -> {
-                System.out.println("openDoor(), evt: " + e.getName());
-                actualEvtList.add("openDoor()");
-            })
-            .build();
+                .withTrigger(event_open)
+                .withSource(closed)
+                .withTarget(opened)
+                .withGuard((transition, event) -> !lockedState.get())
+                .withActions((t, e) -> {
+                    System.out.println("openDoor(), evt: " + e.getName());
+                    actualEvtList.add("openDoor()");
+                })
+                .build();
 
         Transition lockDoor = Transition.newBuilder()
-            .withLocal(true)
-            .withTrigger(event_lock)
-            .withSource(closed)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("lockDoor(), evt: " + e.getName());
-                actualEvtList.add("lockDoor()");
-                lockedState.set(true);
-            })
-            .build();
+                .withLocal(true)
+                .withTrigger(event_lock)
+                .withSource(closed)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("lockDoor(), evt: " + e.getName());
+                    actualEvtList.add("lockDoor()");
+                    lockedState.set(true);
+                })
+                .build();
 
         Transition unlockDoor = Transition.newBuilder()
-            .withLocal(true)
-            .withTrigger(event_unlock)
-            .withSource(closed)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("unlockDoor(), evt: " + e.getName());
-                actualEvtList.add("unlockDoor()");
-                lockedState.set(false);
-            })
-            .build();
+                .withLocal(true)
+                .withTrigger(event_unlock)
+                .withSource(closed)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("unlockDoor(), evt: " + e.getName());
+                    actualEvtList.add("unlockDoor()");
+                    lockedState.set(false);
+                })
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withInitialState(opened)
-            .withOwnedState(opened, closed)
-            .withTransitions(openDoor, closeDoor, lockDoor, unlockDoor)
-            .build();
+                .withInitialState(opened)
+                .withOwnedState(opened, closed)
+                .withTransitions(openDoor, closeDoor, lockDoor, unlockDoor)
+                .build();
 
         var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
@@ -998,36 +998,36 @@ public class FSMTest {
         fsm.setRunning(false);
 
         var expectedEvtList = Arrays.asList(
-            "enter opened",  // <- fsm:init
+                "enter opened",  // <- fsm:init
 
-            "exit opened",
-            "closeDoor()",
-            "enter closed",
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
 
 //                "exit closed",  // self, deactivated due to local transitions (no enter and exit)
-            "lockDoor()",
+                "lockDoor()",
 //                "enter closed", // self, deactivated due to local transitions (no enter and exit)
 
 
 //                "exit closed",  // self, deactivated due to local transitions (no enter and exit)
-            "unlockDoor()",
+                "unlockDoor()",
 //                "enter closed", // self, deactivated due to local transitions (no enter and exit)
 
-            "exit closed",
-            "openDoor()",
-            "enter opened",
+                "exit closed",
+                "openDoor()",
+                "enter opened",
 
-            // not "lockDoor()" because it's invalid
+                // not "lockDoor()" because it's invalid
 
-            "exit opened",
-            "closeDoor()",
-            "enter closed",
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
 
 //                "exit closed"   // self, deactivated due to local transitions (no enter and exit)
-            "lockDoor()"
+                "lockDoor()"
 //                "enter closed"  // self, deactivated due to local transitions (no enter and exit)
 
-            // not "openDoor()" because it's invalid
+                // not "openDoor()" because it's invalid
         );
 
         Assert.assertEquals(expectedEvtList, actualEvtList);
@@ -1047,68 +1047,68 @@ public class FSMTest {
         AtomicBoolean lockedState = new AtomicBoolean();
 
         State opened = State.newBuilder()
-            .withName("opened")
-            .withOnEntryAction((s, e) -> {
-                actualEvtList.add("enter opened");
-            })
-            .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
-            .build();
+                .withName("opened")
+                .withOnEntryAction((s, e) -> {
+                    actualEvtList.add("enter opened");
+                })
+                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .build();
 
         State closed = State.newBuilder()
-            .withName("closed")
-            .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
-            .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
-            .build();
+                .withName("closed")
+                .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
+                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .build();
 
 
         Transition closeDoor = Transition.newBuilder()
-            .withTrigger(event_close)
-            .withSource(opened)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("closeDoor(), evt: " + e.getName());
-                actualEvtList.add("closeDoor()");
-            })
-            .build();
+                .withTrigger(event_close)
+                .withSource(opened)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("closeDoor(), evt: " + e.getName());
+                    actualEvtList.add("closeDoor()");
+                })
+                .build();
 
         Transition openDoor = Transition.newBuilder()
-            .withTrigger(event_open)
-            .withSource(closed)
-            .withTarget(opened)
-            .withGuard((transition, event) -> !lockedState.get())
-            .withActions((t, e) -> {
-                System.out.println("openDoor(), evt: " + e.getName());
-                actualEvtList.add("openDoor()");
-            })
-            .build();
+                .withTrigger(event_open)
+                .withSource(closed)
+                .withTarget(opened)
+                .withGuard((transition, event) -> !lockedState.get())
+                .withActions((t, e) -> {
+                    System.out.println("openDoor(), evt: " + e.getName());
+                    actualEvtList.add("openDoor()");
+                })
+                .build();
 
         Transition lockDoor = Transition.newBuilder()
-            .withTrigger(event_lock)
-            .withSource(closed)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("lockDoor(), evt: " + e.getName());
-                actualEvtList.add("lockDoor()");
-                lockedState.set(true);
-            })
-            .build();
+                .withTrigger(event_lock)
+                .withSource(closed)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("lockDoor(), evt: " + e.getName());
+                    actualEvtList.add("lockDoor()");
+                    lockedState.set(true);
+                })
+                .build();
 
         Transition unlockDoor = Transition.newBuilder()
-            .withTrigger(event_unlock)
-            .withSource(closed)
-            .withTarget(closed)
-            .withActions((t, e) -> {
-                System.out.println("unlockDoor(), evt: " + e.getName());
-                actualEvtList.add("unlockDoor()");
-                lockedState.set(false);
-            })
-            .build();
+                .withTrigger(event_unlock)
+                .withSource(closed)
+                .withTarget(closed)
+                .withActions((t, e) -> {
+                    System.out.println("unlockDoor(), evt: " + e.getName());
+                    actualEvtList.add("unlockDoor()");
+                    lockedState.set(false);
+                })
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withInitialState(opened)
-            .withOwnedState(opened, closed)
-            .withTransitions(openDoor, closeDoor, lockDoor, unlockDoor)
-            .build();
+                .withInitialState(opened)
+                .withOwnedState(opened, closed)
+                .withTransitions(openDoor, closeDoor, lockDoor, unlockDoor)
+                .build();
 
         var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
 
@@ -1128,36 +1128,36 @@ public class FSMTest {
         fsm.setRunning(false);
 
         var expectedEvtList = Arrays.asList(
-            "enter opened",  // <- fsm:init
+                "enter opened",  // <- fsm:init
 
-            "exit opened",
-            "closeDoor()",
-            "enter closed",
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
 
-            "exit closed",   // self
-            "lockDoor()",
-            "enter closed",  // self
+                "exit closed",   // self
+                "lockDoor()",
+                "enter closed",  // self
 
 
-            "exit closed",   // self
-            "unlockDoor()",
-            "enter closed",  // self
+                "exit closed",   // self
+                "unlockDoor()",
+                "enter closed",  // self
 
-            "exit closed",
-            "openDoor()",
-            "enter opened",
+                "exit closed",
+                "openDoor()",
+                "enter opened",
 
-            // not "lockDoor()" because it's invalid
+                // not "lockDoor()" because it's invalid
 
-            "exit opened",
-            "closeDoor()",
-            "enter closed",
+                "exit opened",
+                "closeDoor()",
+                "enter closed",
 
-            "exit closed",   // self
-            "lockDoor()",
-            "enter closed"   // self
+                "exit closed",   // self
+                "lockDoor()",
+                "enter closed"   // self
 
-            // not "openDoor()" because it's invalid
+                // not "openDoor()" because it's invalid
         );
 
         Assert.assertEquals(expectedEvtList, actualEvtList);
@@ -1257,18 +1257,18 @@ public class FSMTest {
                 System.out.println(String.join("\n", actualEvtList));
 
                 var expectedEvtList = Arrays.asList(
-                    "enter s1",      // <- fsm:init
+                        "enter s1",      // <- fsm:init
 
-                    "exit s1",       // <- event1
-                    "transitioning from s1 to parent, via event event1",
-                    "enter parent",
-                    "enter c1",
+                        "exit s1",       // <- event1
+                        "transitioning from s1 to parent, via event event1",
+                        "enter parent",
+                        "enter c1",
 
-                    "exit c1",       // <- event2
-                    "exit parent",
-                    "transitioning from parent to c2, via event event2",
-                    "enter parent",
-                    "enter c2"
+                        "exit c1",       // <- event2
+                        "exit parent",
+                        "transitioning from parent to c2, via event event2",
+                        "enter parent",
+                        "enter c2"
                 );
 
                 Assert.assertEquals(expectedEvtList, actualEvtList);
@@ -1294,17 +1294,17 @@ public class FSMTest {
                 System.out.println(String.join("\n", actualEvtList));
 
                 var expectedEvtList = Arrays.asList(
-                    "enter s1",      // <- fsm:init
+                        "enter s1",      // <- fsm:init
 
-                    "exit s1",       // <- event1
-                    "transitioning from s1 to parent, via event event1",
-                    "enter parent",
-                    "enter c1",
+                        "exit s1",       // <- event1
+                        "transitioning from s1 to parent, via event event1",
+                        "enter parent",
+                        "enter c1",
 
-                    "exit c1",       // <- event2
-                    "exit parent",
-                    "transitioning from parent to s2, via event event2",
-                    "enter s2"
+                        "exit c1",       // <- event2
+                        "exit parent",
+                        "transitioning from parent to s2, via event event2",
+                        "enter s2"
                 );
 
                 Assert.assertEquals(expectedEvtList, actualEvtList);
@@ -1327,83 +1327,83 @@ public class FSMTest {
 
         TransitionAction transitioned = (t, e) -> {
             actualEvtList.add("transitioning from " + t.getSource().getName()
-                + " to " + t.getTarget().getName() + ", via event " + e.getName());
+                    + " to " + t.getTarget().getName() + ", via event " + e.getName());
         };
 
         State c1 = State.newBuilder()
-            .withName("c1")
-            .withOnEntryAction(entryAction)
-            .withOnExitAction(exitAction)
-            .build();
+                .withName("c1")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
 
         State c2 = State.newBuilder()
-            .withName("c2")
-            .withOnEntryAction(entryAction)
-            .withOnExitAction(exitAction)
-            .build();
+                .withName("c2")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
 
         Transition c1_c2 = Transition.newBuilder()
-            .withTrigger("event1")
-            .withSource(c1)
-            .withTarget(c2)
-            .withActions(transitioned)
-            .build();
+                .withTrigger("event1")
+                .withSource(c1)
+                .withTarget(c2)
+                .withActions(transitioned)
+                .build();
 
         FSMState parent = FSMState.newBuilder()
-            .withName("parent")
-            .withOnEntryAction(entryAction)
-            .withOnExitAction(exitAction)
-            .withFSMs(FSM.newBuilder()
-                .withName("parent:r1")
-                .withOwnedState(c1, c2)
-                .withInitialState(c1)
-                .withTransitions(c1_c2)
-                .build()
-            )
-            .build();
+                .withName("parent")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .withFSMs(FSM.newBuilder()
+                        .withName("parent:r1")
+                        .withOwnedState(c1, c2)
+                        .withInitialState(c1)
+                        .withTransitions(c1_c2)
+                        .build()
+                )
+                .build();
 
         State s1 = State.newBuilder()
-            .withName("s1")
-            .withOnEntryAction(entryAction)
-            .withOnExitAction(exitAction)
-            .build();
+                .withName("s1")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
 
         State s2 = State.newBuilder()
-            .withName("s2")
-            .withOnEntryAction(entryAction)
-            .withOnExitAction(exitAction)
-            .build();
+                .withName("s2")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
 
         Transition s1_parent = Transition.newBuilder()
-            .withSource(s1)
-            .withTarget(parent)
-            .withTrigger("event1")
-            .withActions(transitioned)
-            .build();
+                .withSource(s1)
+                .withTarget(parent)
+                .withTrigger("event1")
+                .withActions(transitioned)
+                .build();
 
         Transition parent_s2 = Transition.newBuilder()
-            .withSource(parent)
-            .withTarget(s2)
-            .withTrigger("event1")
-            .withActions(transitioned)
-            .build();
+                .withSource(parent)
+                .withTarget(s2)
+                .withTrigger("event1")
+                .withActions(transitioned)
+                .build();
 
         Transition parent_c2 = Transition.newBuilder()
-            .withTrigger("event2")
-            .withActions(transitioned)
-            .build();
+                .withTrigger("event2")
+                .withActions(transitioned)
+                .build();
 
         Transition parent_s2_b = Transition.newBuilder()
-            .withTrigger("event2")
-            .withActions(transitioned)
-            .build();
+                .withTrigger("event2")
+                .withActions(transitioned)
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withName("fsm")
-            .withOwnedState(parent, s1, s2)
-            .withInitialState(s1)
-            .withTransitions(s1_parent, parent_s2, parent_s2_b, parent_c2)
-            .build();
+                .withName("fsm")
+                .withOwnedState(parent, s1, s2)
+                .withInitialState(s1)
+                .withTransitions(s1_parent, parent_s2, parent_s2_b, parent_c2)
+                .build();
 
         c2.getIncomingTransitions().add(parent_c2);
         s2.getIncomingTransitions().add(parent_s2_b);
@@ -1440,31 +1440,31 @@ public class FSMTest {
 
             TransitionAction transitioned = (t, e) -> {
                 actualEvtList.add("transitioning from " + t.getSource().getName()
-                    + " to " + t.getTarget().getName() + ", via event " + e.getName());
+                        + " to " + t.getTarget().getName() + ", via event " + e.getName());
                 System.out.println("transitioning from " + t.getSource().getName()
-                    + " to " + t.getTarget().getName() + ", via event " + e.getName());
+                        + " to " + t.getTarget().getName() + ", via event " + e.getName());
             };
 
             State c1 = State.newBuilder()
-                .withName("c1")
-                .build();
+                    .withName("c1")
+                    .build();
             State c2 = State.newBuilder()
-                .withName("c2")
-                .build();
+                    .withName("c2")
+                    .build();
 
             Transition c1_c2 = Transition.newBuilder()
-                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-                .withSource(c1)
-                .withTarget(c2)
-                .build();
+                    .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                    .withSource(c1)
+                    .withTarget(c2)
+                    .build();
 
             FSM childFSM = FSM.newBuilder()
-                .withName("Child FSM")
-                .withInitialState(c1)
-                .withOwnedState(c1, c2)
-                .withFinalState(c2)
-                .withTransitions(c1_c2)
-                .build();
+                    .withName("Child FSM")
+                    .withInitialState(c1)
+                    .withOwnedState(c1, c2)
+                    .withFinalState(c2)
+                    .withTransitions(c1_c2)
+                    .build();
 
             FSM childFSM1 = childFSM.clone();
             childFSM1.setName("Child FSM 1");
@@ -1475,73 +1475,73 @@ public class FSMTest {
             childFSM2.getOwnedState().forEach(s -> s.setName(s.getName() + "-fsm2"));
 
             State s1 = State.newBuilder()
-                .withName("s1")
-                .build();
+                    .withName("s1")
+                    .build();
 
             AtomicBoolean childFSMStateWasInterrupted = new AtomicBoolean();
 
             FSMState childFSMState = FSMState.newBuilder()
-                .withName("ChildFSMState")
-                .withFSMs(childFSM1, childFSM2)
-                .withDoAction((s, e) -> {
-                    try {
-                        System.out.println("!!! cfsm: enter");
-                        Thread.sleep(1500);
-                        System.out.println("!!! cfsm: exit");
-                    } catch (InterruptedException interruptedException) {
-                        System.out.println("!!! cfsm: interrupted");
-                        Thread.currentThread().interrupt();
-                        childFSMStateWasInterrupted.set(true);
-                    }
-                })
-                .build();
+                    .withName("ChildFSMState")
+                    .withFSMs(childFSM1, childFSM2)
+                    .withDoAction((s, e) -> {
+                        try {
+                            System.out.println("!!! cfsm: enter");
+                            Thread.sleep(1500);
+                            System.out.println("!!! cfsm: exit");
+                        } catch (InterruptedException interruptedException) {
+                            System.out.println("!!! cfsm: interrupted");
+                            Thread.currentThread().interrupt();
+                            childFSMStateWasInterrupted.set(true);
+                        }
+                    })
+                    .build();
 
             AtomicBoolean s2WasInterrupted = new AtomicBoolean();
 
             State s2 = State.newBuilder()
-                .withName("s2")
-                .withDoAction((s, e) -> {
-                    try {
-                        System.out.println("!!! s2: enter");
-                        Thread.sleep(150);
-                        System.out.println("!!! s2: exit");
-                    } catch (InterruptedException interruptedException) {
-                        System.out.println("!!! s2: interrupt");
-                        Thread.currentThread().interrupt();
-                        s2WasInterrupted.set(true);
-                    }
-                })
-                .build();
+                    .withName("s2")
+                    .withDoAction((s, e) -> {
+                        try {
+                            System.out.println("!!! s2: enter");
+                            Thread.sleep(150);
+                            System.out.println("!!! s2: exit");
+                        } catch (InterruptedException interruptedException) {
+                            System.out.println("!!! s2: interrupt");
+                            Thread.currentThread().interrupt();
+                            s2WasInterrupted.set(true);
+                        }
+                    })
+                    .build();
 
             State s3 = State.newBuilder()
-                .withName("s3")
-                .build();
+                    .withName("s3")
+                    .build();
 
             Transition s1_childFSMState = Transition.newBuilder()
-                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-                .withSource(s1)
-                .withTarget(childFSMState)
-                .build();
+                    .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                    .withSource(s1)
+                    .withTarget(childFSMState)
+                    .build();
 
             Transition childFSMState_s2 = Transition.newBuilder()
-                .withTrigger(FSMExecutor.FSMEvents.FINAL_STATE.getName())
-                .withSource(childFSMState)
-                .withTarget(s2)
-                .build();
+                    .withTrigger(FSMExecutor.FSMEvents.FINAL_STATE.getName())
+                    .withSource(childFSMState)
+                    .withTarget(s2)
+                    .build();
 
             Transition s2_s3 = Transition.newBuilder()
-                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-                .withSource(s2)
-                .withTarget(s3)
-                .build();
+                    .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                    .withSource(s2)
+                    .withTarget(s3)
+                    .build();
 
             FSM fsm = FSM.newBuilder()
-                .withName("FSM")
-                .withInitialState(s1)
-                .withOwnedState(s1, childFSMState, s2, s3)
-                .withFinalState(s3)
-                .withTransitions(s1_childFSMState, childFSMState_s2, s2_s3)
-                .build();
+                    .withName("FSM")
+                    .withInitialState(s1)
+                    .withOwnedState(s1, childFSMState, s2, s3)
+                    .withFinalState(s3)
+                    .withTransitions(s1_childFSMState, childFSMState_s2, s2_s3)
+                    .build();
 
             fsm.vmf().content().stream(State.class).forEach(s -> {
                 s.setOnEntryAction(entryAction);
@@ -1574,37 +1574,37 @@ public class FSMTest {
             fsm.setRunning(false);
 
             var expectedEvtList = Arrays.asList(
-                "enter s1",           // <- fsm:init
+                    "enter s1",           // <- fsm:init
 
-                "exit s1",            // <- fsm:state-done
-                "transitioning from s1 to ChildFSMState, via event fsm:state-done",
-                "enter ChildFSMState",
+                    "exit s1",            // <- fsm:state-done
+                    "transitioning from s1 to ChildFSMState, via event fsm:state-done",
+                    "enter ChildFSMState",
 
-                // FSM1 (Region 1)
-                "enter c1-fsm1",      // <- fsm:init
+                    // FSM1 (Region 1)
+                    "enter c1-fsm1",      // <- fsm:init
 
-                "exit c1-fsm1",       // <- fsm:state-done
-                "transitioning from c1-fsm1 to c2-fsm1, via event fsm:state-done",
-                "enter c2-fsm1",
+                    "exit c1-fsm1",       // <- fsm:state-done
+                    "transitioning from c1-fsm1 to c2-fsm1, via event fsm:state-done",
+                    "enter c2-fsm1",
 
-                "exit c2-fsm1",       // <- fsm stopped (no event generated)
+                    "exit c2-fsm1",       // <- fsm stopped (no event generated)
 
-                // FSM1 (Region 2)
-                "enter c1-fsm2",      // <- fsm:init
+                    // FSM1 (Region 2)
+                    "enter c1-fsm2",      // <- fsm:init
 
-                "exit c1-fsm2",       // <- fsm:state-done
-                "transitioning from c1-fsm2 to c2-fsm2, via event fsm:state-done",
-                "enter c2-fsm2",
+                    "exit c1-fsm2",       // <- fsm:state-done
+                    "transitioning from c1-fsm2 to c2-fsm2, via event fsm:state-done",
+                    "enter c2-fsm2",
 
-                "exit c2-fsm2",       // <- fsm stopped (no event generated)
-                "exit ChildFSMState", // <- fsm:final-state (all regions of ChildFSMState reached final state)
-                "transitioning from ChildFSMState to s2, via event fsm:final-state",
-                "enter s2",
+                    "exit c2-fsm2",       // <- fsm stopped (no event generated)
+                    "exit ChildFSMState", // <- fsm:final-state (all regions of ChildFSMState reached final state)
+                    "transitioning from ChildFSMState to s2, via event fsm:final-state",
+                    "enter s2",
 
-                "exit s2",            // <- fsm:state-done (does not interrupt do-action of s2)
-                "transitioning from s2 to s3, via event fsm:state-done",
-                "enter s3",
-                "exit s3"            // <- fsm stopped (no event generated)
+                    "exit s2",            // <- fsm:state-done (does not interrupt do-action of s2)
+                    "transitioning from s2 to s3, via event fsm:state-done",
+                    "enter s3",
+                    "exit s3"            // <- fsm stopped (no event generated)
             );
 
             System.out.println("--------------");
@@ -1618,12 +1618,12 @@ public class FSMTest {
             Assert.assertEquals(expectedEvtList.size(), actualEvtList.size());
 
             Assert.assertTrue("do-action of childFSMState should be" +
-                    " interrupted since there is a consuming transition that causes childFSMState to exit (evt: fsm:final-state)",
-                childFSMStateWasInterrupted.get());
+                            " interrupted since there is a consuming transition that causes childFSMState to exit (evt: fsm:final-state)",
+                    childFSMStateWasInterrupted.get());
 
             Assert.assertFalse("do-action of s2 should not be" +
-                    " interrupted since there is no consuming transition that would cause s2 to exit (evt: fsm:state-done)",
-                s2WasInterrupted.get());
+                            " interrupted since there is no consuming transition that would cause s2 to exit (evt: fsm:state-done)",
+                    s2WasInterrupted.get());
 
         } // end for i
 
@@ -1644,38 +1644,38 @@ public class FSMTest {
 
         TransitionAction transitioned = (t, e) -> {
             actualEvtList.add("transitioning from " + t.getSource().getName()
-                + " to " + t.getTarget().getName() + ", via event " + e.getName());
+                    + " to " + t.getTarget().getName() + ", via event " + e.getName());
         };
 
         State s1 = State.newBuilder()
-            .withName("s1")
-            .build();
+                .withName("s1")
+                .build();
         State s2 = State.newBuilder()
-            .withName("s2")
-            .build();
+                .withName("s2")
+                .build();
         State s3 = State.newBuilder()
-            .withName("s3")
-            .build();
+                .withName("s3")
+                .build();
 
         Transition s1_s2 = Transition.newBuilder()
-            .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-            .withSource(s1)
-            .withTarget(s2)
-            .build();
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
 
         Transition s2_s3 = Transition.newBuilder()
-            .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-            .withSource(s2)
-            .withTarget(s3)
-            .build();
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(s2)
+                .withTarget(s3)
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withInitialState(s1)
-            .withOwnedState(s1, s2, s3)
-            .withFinalState(s3)
-            .withTransitions(s1_s2, s2_s3)
-            .build();
+                .withName("FSM")
+                .withInitialState(s1)
+                .withOwnedState(s1, s2, s3)
+                .withFinalState(s3)
+                .withTransitions(s1_s2, s2_s3)
+                .build();
 
 
         fsm.vmf().content().stream(State.class).forEach(s -> {
@@ -1698,16 +1698,16 @@ public class FSMTest {
         fsm.setRunning(false);
 
         var expectedEvtList = Arrays.asList(
-            "enter s1",           // <- fsm:init
+                "enter s1",           // <- fsm:init
 
-            "exit s1",            // <- fsm:state-done
-            "transitioning from s1 to s2, via event fsm:state-done",
-            "enter s2",
+                "exit s1",            // <- fsm:state-done
+                "transitioning from s1 to s2, via event fsm:state-done",
+                "enter s2",
 
-            "exit s2",            // <- fsm:state-done
-            "transitioning from s2 to s3, via event fsm:state-done",
-            "enter s3",
-            "exit s3"            // <- fsm stopped (no event generated)
+                "exit s2",            // <- fsm:state-done
+                "transitioning from s2 to s3, via event fsm:state-done",
+                "enter s3",
+                "exit s3"            // <- fsm stopped (no event generated)
         );
 
         System.out.println(String.join("\n", actualEvtList));
@@ -1719,33 +1719,33 @@ public class FSMTest {
     @Test
     public void errorStateTest1() {
         State s1 = State.newBuilder()
-            .withName("s1")
-            .build();
+                .withName("s1")
+                .build();
         State s2 = State.newBuilder()
-            .withName("s1")
-            .withOnEntryAction((s, e) -> {
-                throw new RuntimeException("Exception in s2");
-            })
-            .build();
+                .withName("s1")
+                .withOnEntryAction((s, e) -> {
+                    throw new RuntimeException("Exception in s2");
+                })
+                .build();
 
         Transition s1s2 = Transition.newBuilder()
-            .withTrigger("myEvent1")
-            .withSource(s1)
-            .withTarget(s2)
-            .build();
+                .withTrigger("myEvent1")
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
 
         State error = State.newBuilder()
-            .withName("ERROR")
-            .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
-            .build();
+                .withName("ERROR")
+                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withInitialState(s1)
-            .withOwnedState(s1, s2, error)
-            .withErrorState(error)
-            .withTransitions(s1s2)
-            .build();
+                .withName("FSM")
+                .withInitialState(s1)
+                .withOwnedState(s1, s2, error)
+                .withErrorState(error)
+                .withTransitions(s1s2)
+                .build();
 
         var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS);
 
@@ -1761,45 +1761,45 @@ public class FSMTest {
     @Test
     public void errorStateNestedFSMTest2() {
         State s1 = State.newBuilder()
-            .withName("s1")
-            .build();
+                .withName("s1")
+                .build();
         State s2 = State.newBuilder()
-            .withName("s1")
-            .withOnEntryAction((s, e) -> {
-                throw new RuntimeException("Exception in s2");
-            })
-            .build();
+                .withName("s1")
+                .withOnEntryAction((s, e) -> {
+                    throw new RuntimeException("Exception in s2");
+                })
+                .build();
 
         Transition s1s2 = Transition.newBuilder()
-            .withTrigger("myEvent1")
-            .withSource(s1)
-            .withTarget(s2)
-            .build();
+                .withTrigger("myEvent1")
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
 
 
         FSM fsmChild = FSM.newBuilder()
-            .withName("FSM Child")
-            .withInitialState(s1)
-            .withOwnedState(s1, s2)
-            .withTransitions(s1s2)
-            .build();
+                .withName("FSM Child")
+                .withInitialState(s1)
+                .withOwnedState(s1, s2)
+                .withTransitions(s1s2)
+                .build();
 
         State error = State.newBuilder()
-            .withName("ERROR")
-            .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
-            .build();
+                .withName("ERROR")
+                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .build();
 
         FSMState child = FSMState.newBuilder()
-            .withName("Region 1")
-            .withFSMs(fsmChild)
-            .build();
+                .withName("Region 1")
+                .withFSMs(fsmChild)
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withInitialState(child)
-            .withOwnedState(child, error)
-            .withErrorState(error)
-            .build();
+                .withName("FSM")
+                .withInitialState(child)
+                .withOwnedState(child, error)
+                .withErrorState(error)
+                .build();
 
         var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS);
 
@@ -1820,47 +1820,47 @@ public class FSMTest {
         // in the nested fsm
 
         State s1 = State.newBuilder()
-            .withName("s1")
-            .build();
+                .withName("s1")
+                .build();
         State s2 = State.newBuilder()
-            .withName("s2")
-            .withOnEntryAction((s, e) -> {
-                throw new RuntimeException("Exception in s2");
-            })
-            .build();
+                .withName("s2")
+                .withOnEntryAction((s, e) -> {
+                    throw new RuntimeException("Exception in s2");
+                })
+                .build();
 
         Transition s1s2 = Transition.newBuilder()
-            .withTrigger("myEvent1")
-            .withSource(s1)
-            .withTarget(s2)
-            .build();
+                .withTrigger("myEvent1")
+                .withSource(s1)
+                .withTarget(s2)
+                .build();
 
 
         FSM fsmChild = FSM.newBuilder()
-            .withName("FSM Child")
-            .withInitialState(s1)
-            .withOwnedState(s1, s2)
-            .withTransitions(s1s2)
-            .build();
+                .withName("FSM Child")
+                .withInitialState(s1)
+                .withOwnedState(s1, s2)
+                .withTransitions(s1s2)
+                .build();
 
         State error = State.newBuilder()
-            .withName("ERROR")
-            .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
-            .build();
+                .withName("ERROR")
+                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .build();
 
         FSMState child = FSMState.newBuilder()
-            .withName("Region 1")
-            .withFSMs(fsmChild)
-            .build();
+                .withName("Region 1")
+                .withFSMs(fsmChild)
+                .build();
 
         FSM fsm = FSM.newBuilder()
-            .withName("FSM")
-            .withVerbose(true)
-            .withInitialState(child)
-            .withOwnedState(child)
-            .withOwnedState(child, error)
-            .withErrorState(error)
-            .build();
+                .withName("FSM")
+                .withVerbose(true)
+                .withInitialState(child)
+                .withOwnedState(child)
+                .withOwnedState(child, error)
+                .withErrorState(error)
+                .build();
 
         var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS);
         executor.startAsync();
@@ -1901,50 +1901,50 @@ public class FSMTest {
 
             var s1EnteredF = new CompletableFuture<Void>();
             State s1 = State.newBuilder()
-                .withName("s1")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entered state " + s.getName());
-                    s1EnteredF.complete(null);
-                })
-                .build();
+                    .withName("s1")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                        s1EnteredF.complete(null);
+                    })
+                    .build();
 
             State s2 = State.newBuilder()
-                .withName("s2")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entered state " + s.getName());
-                })
-                .build();
+                    .withName("s2")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                    })
+                    .build();
 
             Function<Integer, FSM> fsmCreator = (i) -> {
                 State s1i = State.newBuilder()
-                    .withName("s1i")
-                    .withOnEntryAction((s, e) -> {
-                        System.out.println("cfsm" + i + " entered state " + s.getName());
-                        sleepRandom(0, 250);
-                    })
-                    .build();
+                        .withName("s1i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
                 State s2i = State.newBuilder()
-                    .withName("s2i")
-                    .withOnEntryAction((s, e) -> {
-                        System.out.println("cfsm" + i + " entered state " + s.getName());
-                        sleepRandom(0, 250);
-                    })
-                    .build();
+                        .withName("s2i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
                 Transition s1s2i = Transition.newBuilder()
-                    .withTrigger("EV1")
-                    .withSource(s1i)
-                    .withTarget(s2i)
-                    .build();
+                        .withTrigger("EV1")
+                        .withSource(s1i)
+                        .withTarget(s2i)
+                        .build();
 
                 FSM fsmChild = FSM.newBuilder()
-                    .withName("Child " + i)
-                    .withInitialState(s1i)
-                    .withOwnedState(s1i, s2i)
-                    .withTransitions(s1s2i)
-                    .withFinalState(s2i)
-                    .build();
+                        .withName("Child " + i)
+                        .withInitialState(s1i)
+                        .withOwnedState(s1i, s2i)
+                        .withTransitions(s1s2i)
+                        .withFinalState(s2i)
+                        .build();
 
                 return fsmChild;
             };
@@ -1952,52 +1952,52 @@ public class FSMTest {
             int numberOFChildren = ThreadLocalRandom.current().nextInt(30) + 1;
 
             var childFSMs = IntStream.range(1, numberOFChildren + 1)
-                .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
+                    .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
 
             var s3EnteredF = new CompletableFuture<Void>();
             FSMState s3 = FSMState.newBuilder()
-                .withName("s3")
-                .withFSMs(childFSMs)
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entering state " + s.getName());
-                    s3EnteredF.complete(null);
-                })
-                .build();
+                    .withName("s3")
+                    .withFSMs(childFSMs)
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entering state " + s.getName());
+                        s3EnteredF.complete(null);
+                    })
+                    .build();
 
             Transition s1s2 = Transition.newBuilder()
-                .withTrigger("EV1")
-                .withSource(s1)
-                .withTarget(s2)
-                .build();
+                    .withTrigger("EV1")
+                    .withSource(s1)
+                    .withTarget(s2)
+                    .build();
 
             Transition s2s3 = Transition.newBuilder()
-                .withTrigger("EV2")
-                .withSource(s2)
-                .withTarget(s3)
-                .build();
+                    .withTrigger("EV2")
+                    .withSource(s2)
+                    .withTarget(s3)
+                    .build();
 
             var s3s1F = new CompletableFuture<>();
             Transition s3s1 = Transition.newBuilder()
-                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-                .withSource(s3)
-                .withTarget(s1)
-                .withActions((t, e) -> {
-                    System.out.println("transitioning from S3 to S1");
-                    s3s1F.complete(null);
-                })
-                .build();
+                    .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                    .withSource(s3)
+                    .withTarget(s1)
+                    .withActions((t, e) -> {
+                        System.out.println("transitioning from S3 to S1");
+                        s3s1F.complete(null);
+                    })
+                    .build();
 
             FSM fsm = FSM.newBuilder()
-                .withName("FSM")
-                .withInitialState(s1)
-                .withOwnedState(s1, s2, s3)
-                .withTransitions(s1s2, s1s2, s2s3, s3s1)
-                .withVerbose(true)
-                .build();
+                    .withName("FSM")
+                    .withInitialState(s1)
+                    .withOwnedState(s1, s2, s3)
+                    .withTransitions(s1s2, s1s2, s2s3, s3s1)
+                    .withVerbose(true)
+                    .build();
 
             var mode = idx % 2 == 0
-                ? AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS
-                : AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
+                    ? AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS
+                    : AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
 
             System.out.println("> running executor with " + mode.name() + ", n-child-fsms: " + numberOFChildren);
             var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS);
@@ -2033,7 +2033,7 @@ public class FSMTest {
                 System.out.println("> triggering event 1");
                 executor.trigger("EV1", (e, t) -> {
                     System.out.println("EV1 consumed for inner by state "
-                        + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
+                            + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
                     );
                     consumeCount.incrementAndGet();
                 });
@@ -2044,8 +2044,8 @@ public class FSMTest {
             executor.stop();
 
             Assert.assertEquals(
-                "EV1 should be consumed by each region R1..R" + numberOFChildren,
-                numberOFChildren, consumeCount.get()
+                    "EV1 should be consumed by each region R1..R" + numberOFChildren,
+                    numberOFChildren, consumeCount.get()
             );
 
         }
@@ -2080,56 +2080,56 @@ public class FSMTest {
 
             var s1EnteredF = new CompletableFuture<Void>();
             State s1 = State.newBuilder()
-                .withName("s1")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entered state " + s.getName()
-                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
-                    s1EnteredF.complete(null);
-                })
-                .build();
+                    .withName("s1")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName()
+                                + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                        s1EnteredF.complete(null);
+                    })
+                    .build();
 
             State s2 = State.newBuilder()
-                .withName("s2")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entered state " + s.getName()
-                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                    );
-                })
-                .build();
+                    .withName("s2")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName()
+                                + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                        );
+                    })
+                    .build();
 
             Function<Integer, FSM> fsmCreator = (i) -> {
                 State s1i = State.newBuilder()
-                    .withName("s1i")
-                    .withOnEntryAction((s, e) -> {
-                        System.out.println("cfsm" + i + " entered state " + s.getName()
-                            + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
-                        );
-                        sleepRandom(0, 250);
-                    })
-                    .build();
+                        .withName("s1i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName()
+                                    + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            );
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
                 State s2i = State.newBuilder()
-                    .withName("s2i")
-                    .withOnEntryAction((s, e) -> {
-                        System.out.println("cfsm" + i + " entered state " + s.getName()
-                            + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
-                        sleepRandom(0, 250);
-                    })
-                    .build();
+                        .withName("s2i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName()
+                                    + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
                 Transition s1s2i = Transition.newBuilder()
-                    .withTrigger("EV1")
-                    .withSource(s1i)
-                    .withTarget(s2i)
-                    .build();
+                        .withTrigger("EV1")
+                        .withSource(s1i)
+                        .withTarget(s2i)
+                        .build();
 
                 FSM fsmChild = FSM.newBuilder()
-                    .withName("Child " + i)
-                    .withInitialState(s1i)
-                    .withOwnedState(s1i, s2i)
-                    .withTransitions(s1s2i)
-                    .withFinalState(s2i)
-                    .build();
+                        .withName("Child " + i)
+                        .withInitialState(s1i)
+                        .withOwnedState(s1i, s2i)
+                        .withTransitions(s1s2i)
+                        .withFinalState(s2i)
+                        .build();
 
                 return fsmChild;
             };
@@ -2137,50 +2137,50 @@ public class FSMTest {
             int numberOFChildren = ThreadLocalRandom.current().nextInt(30) + 1;
 
             var childFSMs = IntStream.range(1, numberOFChildren + 1)
-                .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
+                    .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
 
             var s3EnteredF = new CompletableFuture<Void>();
             FSMState s3 = FSMState.newBuilder()
-                .withName("s3")
-                .withFSMs(childFSMs)
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entering state " + s.getName()
-                        + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
-                    s3EnteredF.complete(null);
-                })
-                .build();
+                    .withName("s3")
+                    .withFSMs(childFSMs)
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entering state " + s.getName()
+                                + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                        s3EnteredF.complete(null);
+                    })
+                    .build();
 
             Transition s1s2 = Transition.newBuilder()
-                .withTrigger("EV1")
-                .withSource(s1)
-                .withTarget(s2)
-                .build();
+                    .withTrigger("EV1")
+                    .withSource(s1)
+                    .withTarget(s2)
+                    .build();
 
             Transition s2s3 = Transition.newBuilder()
-                .withTrigger("EV2")
-                .withSource(s2)
-                .withTarget(s3)
-                .build();
+                    .withTrigger("EV2")
+                    .withSource(s2)
+                    .withTarget(s3)
+                    .build();
 
             Transition s3s1 = Transition.newBuilder()
-                .withTrigger("EV3")
-                .withSource(s3)
-                .withTarget(s1)
-                .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
-                .build();
+                    .withTrigger("EV3")
+                    .withSource(s3)
+                    .withTarget(s1)
+                    .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
+                    .build();
 
             FSM fsm = FSM.newBuilder()
-                .withName("FSM")
-                .withInitialState(s1)
-                .withOwnedState(s1, s2, s3)
-                .withTransitions(s1s2, s1s2, s2s3, s3s1)
-                .withVerbose(true)
-                .build();
+                    .withName("FSM")
+                    .withInitialState(s1)
+                    .withOwnedState(s1, s2, s3)
+                    .withTransitions(s1s2, s1s2, s2s3, s3s1)
+                    .withVerbose(true)
+                    .build();
 
 
             var mode = idx % 2 == 0
-                ? AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS
-                : AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
+                    ? AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS
+                    : AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
 
             System.out.println("> running executor with " + mode.name() + ", n-child-fsms: " + numberOFChildren);
             var executor = FSMExecutors.newAsyncExecutor(fsm, mode);
@@ -2194,7 +2194,7 @@ public class FSMTest {
                 System.out.println("> triggering event 1");
                 executor.trigger("EV1", (e, t) -> {
                     System.out.println("EV1 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                     f.complete(null);
                 });
                 f.join();
@@ -2205,7 +2205,7 @@ public class FSMTest {
                 System.out.println("> triggering event 2");
                 executor.trigger("EV2", (e, t) -> {
                     System.out.println("EV2 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
                     f.complete(null);
                 });
@@ -2220,8 +2220,8 @@ public class FSMTest {
                 System.out.println("> triggering event 1");
                 executor.trigger("EV1", (e, t) -> {
                     System.out.println("EV1 consumed for inner by state "
-                        + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName()
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
                     consumeCount.incrementAndGet();
                     f.complete(null);
@@ -2235,7 +2235,7 @@ public class FSMTest {
                 executor.trigger("EV3", (e, t) -> {
                     f.complete(null);
                     System.out.println("EV3 consumed"
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
                 });
                 f.join();
@@ -2244,8 +2244,8 @@ public class FSMTest {
             executor.stop();
 
             Assert.assertEquals(
-                "EV1 should be consumed by each region R1..R" + numberOFChildren,
-                numberOFChildren, consumeCount.get()
+                    "EV1 should be consumed by each region R1..R" + numberOFChildren,
+                    numberOFChildren, consumeCount.get()
             );
         }
     }
@@ -2279,50 +2279,50 @@ public class FSMTest {
 
             var s1EnteredF = new CompletableFuture<Void>();
             State s1 = State.newBuilder()
-                .withName("s1")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entered state " + s.getName());
-                    s1EnteredF.complete(null);
-                })
-                .build();
+                    .withName("s1")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                        s1EnteredF.complete(null);
+                    })
+                    .build();
 
             State s2 = State.newBuilder()
-                .withName("s2")
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entered state " + s.getName());
-                })
-                .build();
+                    .withName("s2")
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entered state " + s.getName());
+                    })
+                    .build();
 
             Function<Integer, FSM> fsmCreator = (i) -> {
                 State s1i = State.newBuilder()
-                    .withName("s1i")
-                    .withOnEntryAction((s, e) -> {
-                        System.out.println("cfsm" + i + " entered state " + s.getName());
-                        sleepRandom(0, 250);
-                    })
-                    .build();
+                        .withName("s1i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
                 State s2i = State.newBuilder()
-                    .withName("s2i")
-                    .withOnEntryAction((s, e) -> {
-                        System.out.println("cfsm" + i + " entered state " + s.getName());
-                        sleepRandom(0, 250);
-                    })
-                    .build();
+                        .withName("s2i")
+                        .withOnEntryAction((s, e) -> {
+                            System.out.println("cfsm" + i + " entered state " + s.getName());
+                            sleepRandom(0, 250);
+                        })
+                        .build();
 
                 Transition s1s2i = Transition.newBuilder()
-                    .withTrigger("EV1")
-                    .withSource(s1i)
-                    .withTarget(s2i)
-                    .build();
+                        .withTrigger("EV1")
+                        .withSource(s1i)
+                        .withTarget(s2i)
+                        .build();
 
                 FSM fsmChild = FSM.newBuilder()
-                    .withName("Child " + i)
-                    .withInitialState(s1i)
-                    .withOwnedState(s1i, s2i)
-                    .withTransitions(s1s2i)
-                    .withFinalState(s2i)
-                    .build();
+                        .withName("Child " + i)
+                        .withInitialState(s1i)
+                        .withOwnedState(s1i, s2i)
+                        .withTransitions(s1s2i)
+                        .withFinalState(s2i)
+                        .build();
 
                 return fsmChild;
             };
@@ -2330,50 +2330,50 @@ public class FSMTest {
             int numberOFChildren = ThreadLocalRandom.current().nextInt(30) + 1;
 
             var childFSMs = IntStream.range(1, numberOFChildren + 1)
-                .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
+                    .mapToObj(i -> fsmCreator.apply(i)).collect(Collectors.toList());
 
             var s3EnteredF = new CompletableFuture<Void>();
             FSMState s3 = FSMState.newBuilder()
-                .withName("s3")
-                .withFSMs(childFSMs)
-                .withOnEntryAction((s, e) -> {
-                    System.out.println("entering state " + s.getName());
-                    s3EnteredF.complete(null);
-                })
-                .build();
+                    .withName("s3")
+                    .withFSMs(childFSMs)
+                    .withOnEntryAction((s, e) -> {
+                        System.out.println("entering state " + s.getName());
+                        s3EnteredF.complete(null);
+                    })
+                    .build();
 
             Transition s1s2 = Transition.newBuilder()
-                .withTrigger("EV1")
-                .withSource(s1)
-                .withTarget(s2)
-                .build();
+                    .withTrigger("EV1")
+                    .withSource(s1)
+                    .withTarget(s2)
+                    .build();
 
             Transition s2s3 = Transition.newBuilder()
-                .withTrigger("EV2")
-                .withSource(s2)
-                .withTarget(s3)
-                .build();
+                    .withTrigger("EV2")
+                    .withSource(s2)
+                    .withTarget(s3)
+                    .build();
 
             Transition s3s1 = Transition.newBuilder()
-                .withTrigger("EV3")
-                .withSource(s3)
-                .withTarget(s1)
-                .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
-                .build();
+                    .withTrigger("EV3")
+                    .withSource(s3)
+                    .withTarget(s1)
+                    .withActions((t, e) -> System.out.println("transitioning from S3 to S1"))
+                    .build();
 
 
             FSM fsm = FSM.newBuilder()
-                .withName("FSM")
-                .withInitialState(s1)
-                .withOwnedState(s1, s2, s3)
-                .withTransitions(s1s2, s1s2, s2s3, s3s1)
-                .withVerbose(true)
-                .build();
+                    .withName("FSM")
+                    .withInitialState(s1)
+                    .withOwnedState(s1, s2, s3)
+                    .withTransitions(s1s2, s1s2, s2s3, s3s1)
+                    .withVerbose(true)
+                    .build();
 
 
             var mode = idx % 2 == 0
-                ? AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS
-                : AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
+                    ? AsyncFSMExecutor.ExecutionMode.SERIAL_REGIONS
+                    : AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
 
             System.out.println("> running executor with " + mode.name() + ", n-child-fsms: " + numberOFChildren);
             var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS);
@@ -2387,7 +2387,7 @@ public class FSMTest {
                 System.out.println("> triggering event 1");
                 executor.trigger("EV1", (e, t) -> {
                     System.out.println("EV1 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
                     f.complete(null);
                 });
@@ -2399,7 +2399,7 @@ public class FSMTest {
                 System.out.println("> triggering event 2");
                 executor.trigger("EV2", (e, t) -> {
                     System.out.println("EV2 consumed "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
                     f.complete(null);
                 });
@@ -2414,8 +2414,8 @@ public class FSMTest {
                 System.out.println("> triggering event 1");
                 executor.trigger("EV1", (e, t) -> {
                     System.out.println("EV1 consumed for inner by state "
-                        + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName() + " "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            + t.getTarget().getName() + " in fsm " + t.getOwningFSM().getName() + " "
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
                     consumeCount.incrementAndGet();
                     f.complete(null);
@@ -2429,7 +2429,7 @@ public class FSMTest {
                 executor.trigger("EV3", (e, t) -> {
                     f.complete(null);
                     System.out.println("EV3 consumed: "
-                        + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
+                            + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                     );
                 });
                 f.join();
@@ -2438,8 +2438,8 @@ public class FSMTest {
             executor.stop();
 
             Assert.assertEquals(
-                "EV1 should be consumed by each region R1..R" + numberOFChildren,
-                numberOFChildren, consumeCount.get()
+                    "EV1 should be consumed by each region R1..R" + numberOFChildren,
+                    numberOFChildren, consumeCount.get()
             );
         }
     }
@@ -2466,8 +2466,8 @@ public class FSMTest {
 
         var list = new ConcurrentLinkedDeque<String>();
 
-        State A = State.newBuilder()
-                .withName("A")
+        Function<String, State> createState = (name) -> State.newBuilder()
+                .withName(name)
                 .withOnEntryAction((s, e) -> {
                     var msg = "entered state " + s.getName();
                     System.out.println(msg);
@@ -2475,50 +2475,13 @@ public class FSMTest {
                 })
                 .build();
 
-        State C = State.newBuilder()
-            .withName("C")
-            .withOnEntryAction((s, e) -> {
-                var msg = "entered state " + s.getName();
-                System.out.println(msg);
-                list.add(msg);
-            })
-            .build();
 
-        State D = State.newBuilder()
-                .withName("D")
-                .withOnEntryAction((s, e) -> {
-                    var msg = "entered state " + s.getName();
-                    System.out.println(msg);
-                    list.add(msg);
-                })
-                .build();
-
-        State E = State.newBuilder()
-                .withName("E")
-                .withOnEntryAction((s, e) -> {
-                    var msg = "entered state " + s.getName();
-                    System.out.println(msg);
-                    list.add(msg);
-                })
-                .build();
-
-        State F = State.newBuilder()
-                .withName("F")
-                .withOnEntryAction((s, ev) -> {
-                    var msg = "entered state " + s.getName();
-                    System.out.println(msg);
-                    list.add(msg);
-                })
-                .build();
-
-        State G = State.newBuilder()
-            .withName("G")
-            .withOnEntryAction((s, ev) -> {
-                var msg = "entered state " + s.getName();
-                System.out.println(msg);
-                list.add(msg);
-            })
-            .build();
+        State A = createState.apply("A");
+        State C = createState.apply("C");
+        State D = createState.apply("D");
+        State E = createState.apply("E");
+        State F = createState.apply("F");
+        State G = createState.apply("G");
 
         Transition DE = Transition.newBuilder()
                 .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
@@ -2533,16 +2496,16 @@ public class FSMTest {
                 .build();
 
         Transition FG = Transition.newBuilder()
-            .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-            .withSource(F)
-            .withTarget(G)
-            .build();
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(F)
+                .withTarget(G)
+                .build();
 
         FSM nestedFSM = FSM.newBuilder()
                 .withName("nested FSM")
                 .withInitialState(D)
                 .withFinalState(G)
-                .withOwnedState(D,E,F,G)
+                .withOwnedState(D, E, F, G)
                 .withTransitions(DE, EF, FG)
                 .withVerbose(true)
                 .build();
@@ -2570,10 +2533,10 @@ public class FSMTest {
                 .build();
 
         Transition BC = Transition.newBuilder()
-            .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-            .withSource(B)
-            .withTarget(C)
-            .build();
+                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                .withSource(B)
+                .withTarget(C)
+                .build();
 
 //        FSM fsm1 = FSM.newBuilder()
 //                .withName("FSM")
@@ -2587,15 +2550,15 @@ public class FSMTest {
 //                .withVerbose(true)
 //                .build();
 
-        FSM fsm2= FSM.newBuilder()
+        FSM fsm2 = FSM.newBuilder()
                 .withName("FSM")
                 .withInitialState(A)
                 .withFinalState(C)
-                .withOwnedState(A,B,C)
+                .withOwnedState(A, B, C)
                 .withTransitions(
-                    AE,
+                        AE,
 //                    AB,
-                    BC
+                        BC
                 )
                 .withVerbose(true)
                 .build();
@@ -2605,14 +2568,473 @@ public class FSMTest {
         executor.startAndWait();
 
         Assert.assertEquals(List.of(
-            "entered state A",
-            "entered state B",
-            "entered state E",
-            "entered state F",
-            "entered state G",
-            "entered state C"
+                "entered state A",
+                "entered state B",
+                "entered state E",
+                "entered state F",
+                "entered state G",
+                "entered state C"
         ), list);
 
     }
 
+    @Test(timeout = 10_000)
+    public void testDirectToNestedState() {
+        //
+        //
+        //
+        //         +---------------------------------------------+
+        //         | B  |                                        |
+        //         |---/     +-------------------------+         |
+        //         |         | E  |                    |         |
+        //  +---+  |         |---/                     |         |
+        //  | A +--+---------+------------+            |         |
+        //  +---+  |         |            |            |         |
+        //         |         |            |            |         |
+        //         |  +---+  |  +---+   +-v-+   +---+  |  +---+  |  +---+
+        //         |  | D +-->  | G +---> H +---> I |  +--> F |  +--> C |
+        //         |  +---+  |  +---+   +---+   +---+  |  +---+  |  +---+
+        //         |         |                         |         |
+        //         |         |                         |         |
+        //         |         |                         |         |
+        //         |         +-------------------------+         |
+        //         |                                             |
+        //         +---------------------------------------------+
+        //
+
+        // create fsm according to upper diagram
+
+        // B, E are FSMStates with a single region, the other states are normal states
+
+        // create a list to store the state entry messages
+        var list = new ConcurrentLinkedDeque<String>();
+
+        // create a VSM model with nested fsm states
+
+        Function<String, State> createState = (name) -> State.newBuilder()
+                .withName(name)
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        // create states
+        var A = createState.apply("A");
+        var C = createState.apply("C");
+        var D = createState.apply("D");
+        var F = createState.apply("F");
+        var G = createState.apply("G");
+        var H = createState.apply("H");
+        var I = createState.apply("I");
+
+        // create fsm states with nested fsms
+        var E = FSMState.newBuilder()
+                .withName("E")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("nested FSM E")
+                                .withInitialState(G)
+                                .withFinalState(I)
+                                .withOwnedState(G, H, I)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(G)
+                                                .withTarget(H)
+                                                .build(),
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(H)
+                                                .withTarget(I)
+                                                .build()
+                                )
+                                .withVerbose(true)
+                                .build()
+                )
+                .build();
+
+
+        var B = FSMState.newBuilder()
+                .withName("B")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("nested FSM B")
+                                .withInitialState(D)
+                                .withFinalState(F)
+                                .withOwnedState(D, E, F)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(D)
+                                                .withTarget(E)
+                                                .build(),
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(E)
+                                                .withTarget(F)
+                                                .build()
+                                )
+                                .withVerbose(true)
+                                .build()
+                )
+                .build();
+
+        // first, create the root fsm
+        var root = FSM.newBuilder()
+                .withName("root")
+                .withInitialState(A)
+                .withFinalState(C)
+                .withOwnedState(A, B, C)
+                .withTransitions(
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(A)
+                                .withTarget(B)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(B)
+                                .withTarget(C)
+                                .build()
+                )
+                .withVerbose(true)
+                .build();
+
+        // create the executor
+        var executor = FSMExecutors.newAsyncExecutor(root);
+
+        // start the executor
+        executor.startAndWait();
+
+        // check the result
+        Assert.assertEquals(List.of(
+                "entered state A",
+                "entered FSM state B",
+//                "entered state D",
+                "entered FSM state E",
+//                "entered state G",
+                "entered state H",
+                "entered state I",
+                "entered state F",
+                "entered state C"
+        ), list);
+    }
+
+
+    @Test(timeout = 10_000)
+    public void testNestedFSMInnerToInner() {
+        //
+        //             +---------------------------------------------+
+        //             | B  |                                        |
+        //             |---/     +-------------------------+         |
+        //      +---+  |         | E |                     |         |
+        //      | A +-->         |---/                     |         |
+        //      +---+  |         |                         |         |
+        //             |         |                         |         |
+        //             |  +---+  |  +---+   +---+   +---+  |  +---+  |  +---+
+        //             |  | D +-->  | G +---> H +---> I |  +--> F |  +--> C |
+        //             |  +---+  |  +---+   +-+-+   +---+  |  +---+  |  +-+-+
+        //             |         |            |            |         |    |
+        //             |         +------------+------------+         |    |
+        //             |                      |                      |    |
+        //             +----------------------+----------------------+    |
+        //                                    |                           |
+        //                                    |                           |
+        //             +----------------------+----------------------+    |
+        //             | J |                  |                      |    |
+        //             |---/     +------------+------------+         <----+
+        //             |         | M |        |            |         |
+        //             |         |---/        |            |         |
+        //             |         |            |            |         |
+        //             |  +---+  |  +---+   +-v-+   +---+  |  +---+  |  +---+
+        //             |  | L +-->  | O +---> P +---> Q |  +--> N |  +--> K |
+        //             |  +---+  |  +---+   +---+   +---+  |  +---+  |  +---+
+        //             |         |                         |         |
+        //             |         +-------------------------+         |
+        //             |                                             |
+        //             +---------------------------------------------+
+        //
+
+        // create a list to store the messages
+        var list = new ConcurrentLinkedDeque<String>();
+
+        Function<String, State> createState = (name) -> State.newBuilder()
+                .withName(name)
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withOnExitAction((s, e) -> {
+                    var msg = "exited state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        // B, E, J, M are nested fsm states
+
+        // create the regular states
+        var A = createState.apply("A");
+        var C = createState.apply("C");
+        var D = createState.apply("D");
+        var F = createState.apply("F");
+        var G = createState.apply("G");
+        var H = createState.apply("H");
+        var I = createState.apply("I");
+        var K = createState.apply("K");
+        var L = createState.apply("L");
+        var N = createState.apply("N");
+        var O = createState.apply("O");
+        var P = createState.apply("P");
+        var Q = createState.apply("Q");
+
+        // create the nested fsm states
+        var E = FSMState.newBuilder()
+                .withName("E")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withOnExitAction((s, e) -> {
+                    var msg = "exited FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("nested FSM E")
+                                .withInitialState(G)
+                                .withFinalState(I)
+                                .withOwnedState(G, H, I)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(G)
+                                                .withTarget(H)
+                                                .build(),
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(H)
+                                                .withTarget(I)
+                                                .build()
+                                )
+                                .withVerbose(true)
+                                .build()
+                )
+                .build();
+
+        var B = FSMState.newBuilder()
+                .withName("B")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withOnExitAction((s, e) -> {
+                    var msg = "exited FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("nested FSM B")
+                                .withInitialState(D)
+                                .withFinalState(F)
+                                .withOwnedState(D, E, F)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(D)
+                                                .withTarget(E)
+                                                .build(),
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(E)
+                                                .withTarget(F)
+                                                .build()
+                                )
+                                .withVerbose(true)
+                                .build()
+                )
+                .build();
+
+
+        // M with nested FSM and states O, P, Q
+        var M = FSMState.newBuilder()
+                .withName("M")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withOnExitAction((s, e) -> {
+                    var msg = "exited FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("nested FSM M")
+                                .withInitialState(O)
+                                .withFinalState(Q)
+                                .withOwnedState(O, P, Q)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(O)
+                                                .withTarget(P)
+                                                .build(),
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(P)
+                                                .withTarget(Q)
+                                                .build()
+                                )
+                                .withVerbose(true)
+                                .build()
+                ).build();
+
+
+        var J = FSMState.newBuilder()
+                .withName("J")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withFSMs(
+                        FSM.newBuilder()
+                                .withName("nested FSM J")
+                                .withInitialState(L)
+                                .withFinalState(N)
+                                .withOwnedState(L, M, N)
+                                .withTransitions(
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(L)
+                                                .withTarget(M)
+                                                .build(),
+                                        Transition.newBuilder()
+                                                .withTrigger(
+                                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                                )
+                                                .withSource(M)
+                                                .withTarget(N)
+                                                .build()
+                                )
+                                .withVerbose(true)
+                                .build()
+                ).build();
+
+
+        // create the root fsm with states A, B, C, J, K
+        // and transitions with trigger 'state-done'
+        var root = FSM.newBuilder()
+                .withName("root FSM")
+                .withInitialState(A)
+                .withFinalState(K)
+                .withOwnedState(A, B, C, J, K)
+                .withTransitions(
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(A)
+                                .withTarget(B)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(B)
+                                .withTarget(C)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(C)
+                                .withTarget(J)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(J)
+                                .withTarget(K)
+                                .build(),
+                        // transition from nested fsm state H to P
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(H)
+                                .withTarget(P)
+                                .build()
+                )
+                .withVerbose(true)
+                .build();
+
+        // create the fsm executor and execute the fsm
+        var fsmExecutor = FSMExecutors.newAsyncExecutor(root);
+
+        // start the fsm executor
+        fsmExecutor.startAndWait();
+
+        // check the result
+        Assert.assertEquals(List.of(
+                "entered state A",
+                "exited state A",
+                "entered FSM state B",
+                "entered state D",
+                "exited state D",
+                "entered FSM state E",
+                "entered state G",
+                "exited state G",
+                "entered state H",
+                "exited state H",
+                "exited FSM state E",
+                "exited FSM state B",
+                "entered FSM state J",
+                "entered FSM state M",
+                "entered state P",
+                "exited state P",
+                "entered state Q",
+                "exited state Q",
+                "exited FSM state M",
+                "entered state N",
+                "exited state N",
+                "exited FSM state J",
+                "entered state K",
+                "exited state K"
+        ), list);
+
+
+    }
 }

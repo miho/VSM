@@ -618,7 +618,7 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     private void performStateTransition(Event evt, State oldState, State newState, Transition consumer) {
 
-        var exitOldStateList = new ArrayList<State>();
+        var exitOldStateList  = new ArrayList<State>();
         var enterNewStateList = new ArrayList<State>();
 
         // compute LCA of oldState and newState
@@ -842,6 +842,233 @@ class FSMExecutor implements AsyncFSMExecutor {
         }
     }
 
+
+
+    private void performStateTransition2(Event evt, State oldState, State newState, Transition consumer) {
+
+        var exitOldStateList = new ArrayList<State>();
+        var enterNewStateList = new ArrayList<State>();
+
+        // compute LCA of oldState and newState
+        if(oldState!=null && newState!=null) {
+
+            var pathToRootSrc = pathToRootExcluding(oldState);
+            var pathToRootDst = pathToRootExcluding(newState);
+
+            int maxSize = Math.max(pathToRootSrc.size(),pathToRootDst.size());
+
+            for(int i = 0; i < maxSize; i++) {
+                State srcParent;
+                if(i<pathToRootSrc.size()) {
+                    srcParent = pathToRootSrc.get(i);
+                } else {
+                    srcParent = null;
+                }
+
+                State dstParent;
+                if(i < pathToRootDst.size()) {
+                    dstParent = pathToRootDst.get(i);
+                } else {
+                    dstParent = null;
+                }
+
+                if(srcParent!=null && dstParent!=null && srcParent == dstParent) {
+                    // LCA found
+                    System.out.println("  -> LCA found:    " + srcParent.getName());
+                    // print path to root
+                    System.out.println("  -> Path to root: " + pathToRootSrc.stream().map(s->s.getName()).collect(Collectors.toList()));
+                    break;
+                } else {
+                    if(srcParent!=null) {
+                        exitOldStateList.add(srcParent);
+                    }
+                    if(dstParent!=null) {
+                        enterNewStateList.add(dstParent);
+                    }
+                }
+            }
+        }
+
+        boolean enterAndExit = !(oldState == newState && (consumer == null ? false : consumer.isLocal()));
+
+        if (enterAndExit) {
+            // exit do-action of oldState
+            // fails early if exit action returns false
+            // fsm will go to error state if exit action throws an exception
+            if (!exitDoActionOfOldState(evt, oldState, newState)) return;
+
+            // exit do-action and state ancestors until we reach direct children of LAC(oldState, newState)
+            for(State s : exitOldStateList) {
+                if (!exitDoActionOfOldState(evt, s, newState)) return;
+            }
+        }
+
+        // execute transition action
+        if(consumer!=null) {
+            consumer.getActions().forEach(action -> {
+                try {
+
+                    // execute action
+                    // action.execute(consumer, evt);
+                    fsmLock.unlock();
+                    CompletableFuture.runAsync(()->{
+                        fsmLock.lock();
+                        try {
+                            action.execute(consumer, evt);
+                        } finally {
+                            fsmLock.unlock();
+                        }
+                    },executorService).orTimeout(MAX_TRANSITION_ACTION_TIMEOUT,TimeUnit.MILLISECONDS).get();
+                } catch (Exception ex) {
+                    handleExecutionError(evt, consumer.getSource(), consumer.getTarget(), ex);
+                    return;
+                } finally {
+                    fsmLock.lock();
+                }
+            });
+        }
+
+        if (enterAndExit) {
+
+            // enter do-action and state ancestors from direct child of LAC(oldState, newState) to newState
+
+            // iterate over enterNewStateList and lookup nextS state in the list
+            for(int i = 0; i < enterNewStateList.size(); i++) {
+                State s = enterNewStateList.get(i);
+                State nextS = newState;
+                // replace with next state in list if possible
+                if(i+1 < enterNewStateList.size()) {
+                    nextS = enterNewStateList.get(i + 1);
+                }
+
+                try {
+
+                    // execute entry-action
+                    StateAction entryAction = s.getOnEntryAction();
+                    if (entryAction != null && !(s == newState)) {
+
+                        try {
+                            fsmLock.unlock();
+                            //entryAction.execute(s, evt);
+                            CompletableFuture.runAsync(() -> {
+                                fsmLock.lock();
+                                try {
+                                    entryAction.execute(s, evt);
+                                } finally {
+                                    fsmLock.unlock();
+                                }
+                            },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                        } finally {
+                            fsmLock.lock();
+                        }
+                    }
+
+                    if (!executeDoActionOfNewState(evt, s, newState)) return;
+
+                    // enter children states
+                    if(enterAndExit && s instanceof FSMState) {
+                        FSMState fsmState = (FSMState)  s;
+                        for(FSM childFSM : fsmState.getFSMs()) {
+                            fsmLock.lock();
+                            try {
+                                // create a new executor for child fsm if it doesn't exist yet
+                                if (childFSM.getExecutor() == null) {
+                                    getCaller().getExecutor().newChild(childFSM);
+                                }
+                                eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
+                                executor.reset();
+
+                                System.out.println("!!!  -> enter childFSM: " + childFSM.getName() + " nextS: " + (nextS==null?"null":nextS.getName()) + " childFSM.initialState: " + childFSM.getInitialState().getName());
+
+//                                // if childFSM contains nextS, then configure for entering it instead of the initial state
+//                                if(nextS!=null && childFSM == nextS.getOwningFSM()) {
+//                                    //((FSMExecutor)executor).processRemainingEvents(nextS);
+//                                }
+
+                                childFSM.setRunning(true);
+
+                            } finally {
+                                fsmLock.unlock();
+                            }
+                        }
+                    }
+
+                } catch (Exception ex) {
+                    handleExecutionError(evt, oldState, newState, ex);
+                    return;
+                }
+            }
+
+            // execute on-entry action
+            try {
+                StateAction entryAction = newState.getOnEntryAction();
+                if (entryAction != null) {
+                    try {
+                        fsmLock.unlock();
+                        //entryAction.execute(newState, evt);
+                        CompletableFuture.runAsync(() -> {
+                            fsmLock.lock();
+                            try {
+                                entryAction.execute(newState, evt);
+                            } finally {
+                                fsmLock.unlock();
+                            }
+                        },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                    } finally {
+                        fsmLock.lock();
+                    }
+                }
+
+            } catch (Exception ex) {
+                handleExecutionError(evt, oldState, newState, ex);
+                return;
+            }
+
+            // execute do-action
+            if (!executeDoActionOfNewState(evt, oldState, newState)) return;
+
+        }
+
+        // enter children states
+        if(enterAndExit && newState instanceof FSMState) {
+            FSMState fsmState = (FSMState) newState;
+            for(FSM childFSM : fsmState.getFSMs()) {
+
+                fsmLock.lock();
+                try {
+                    // create a new executor for child fsm if it doesn't exist yet
+                    if (childFSM.getExecutor() == null) {
+                        getCaller().getExecutor().newChild(childFSM);
+                    }
+
+                    eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
+                    executor.reset();
+                    executor.accessFSMSafe((cfsm)->{
+                        cfsm.setRunning(true);
+                    });
+                } finally {
+                    fsmLock.unlock();
+                }
+            }
+        }
+
+        // transition done, set new current state
+        fsmLock.lock();
+        try {
+
+            // acquire child fsm lock and set new state
+            newState.getOwningFSM().getExecutor().accessFSMSafe((cfsm) -> {
+                cfsm.setCurrentState(newState);
+            });
+
+//            oldState.getOwningFSM().setCurrentState(newState);
+
+//            getCaller().setCurrentState(newState);
+            stateExited.put(newState, false);
+        } finally {
+            fsmLock.unlock();
+        }
+    }
 
     private boolean executeDoActionOfNewState(Event evt, State oldState, State newState) {
         try {
