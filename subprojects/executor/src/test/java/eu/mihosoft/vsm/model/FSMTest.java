@@ -676,7 +676,7 @@ public class FSMTest {
         return fsm;
     }
 
-    @Test
+    @Test(timeout = 10_000)
     public void enterNestedStateDirectlyTest() throws InterruptedException {
 
         for (int i = 0; i < NUM_ITERATIONS_SMALL_TESTS; i++) {
@@ -685,14 +685,17 @@ public class FSMTest {
 
             FSM fsm_a = FSM.newBuilder()
                     .withName("FSM a")
+                    .withVerbose(true)
                     .build();
 
             FSM fsm_a_a = FSM.newBuilder()
                     .withName("FSM a_a")
+                    .withVerbose(true)
                     .build();
 
             FSM fsm_a_b = FSM.newBuilder()
                     .withName("FSM a_b")
+                    .withVerbose(true)
                     .build();
 
             State state_a = FSMState.newBuilder()
@@ -735,7 +738,7 @@ public class FSMTest {
                     .withOnExitAction((s, e) -> actualEvtList.add("exit state a_b_a"))
                     .build();
 
-            Transition a_a__a_b_a = Transition.newBuilder()
+            Transition a_a_a__a_b_a = Transition.newBuilder()
                     .withTrigger("myEvent1")
                     .withSource(state_a_a_a)
                     .withTarget(state_a_b_a)
@@ -747,9 +750,10 @@ public class FSMTest {
             FSM fsm = FSM.newBuilder()
                     .withOwnedState(state_a)
                     .withInitialState(state_a)
+                    .withVerbose(true)
                     .build();
 
-            fsm.getTransitions().add(a_a__a_b_a);
+            fsm.getTransitions().add(a_a_a__a_b_a);
 
             var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
             fsm.setRunning(true);
@@ -2574,7 +2578,7 @@ public class FSMTest {
                 "entered state F",
                 "entered state G",
                 "entered state C"
-        ), list);
+        ).toArray(), list.toArray());
 
     }
 
@@ -2708,13 +2712,15 @@ public class FSMTest {
                 .withTransitions(
                         Transition.newBuilder()
                                 .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-                                .withSource(A)
-                                .withTarget(B)
-                                .build(),
-                        Transition.newBuilder()
-                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
                                 .withSource(B)
                                 .withTarget(C)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(
+                                        FSMExecutor.FSMEvents.STATE_DONE.getName()
+                                )
+                                .withSource(A)
+                                .withTarget(H)
                                 .build()
                 )
                 .withVerbose(true)
@@ -2726,22 +2732,25 @@ public class FSMTest {
         // start the executor
         executor.startAndWait();
 
-        // check the result
-        Assert.assertEquals(List.of(
+        // list
+        var expected = List.of(
                 "entered state A",
                 "entered FSM state B",
-//                "entered state D",
+//                "entered state D", initial state of nested fsm B, not entered in this case, see diagram!
                 "entered FSM state E",
-//                "entered state G",
+//                "entered state G", initial state of nested fsm E, not entered in this case, see diagram!
                 "entered state H",
                 "entered state I",
                 "entered state F",
                 "entered state C"
-        ), list);
+        );
+
+        // check the result
+        Assert.assertEquals(expected.toArray(), list.toArray());
     }
 
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 5_000)
     public void testNestedFSMInnerToInner() {
         //
         //             +---------------------------------------------+
@@ -2828,6 +2837,12 @@ public class FSMTest {
                                 .withFinalState(I)
                                 .withOwnedState(G, H, I)
                                 .withTransitions(
+                                        // transition from nested fsm state H to P
+                                        Transition.newBuilder()
+                                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                                .withSource(H)
+                                                .withTarget(P)
+                                                .build(),
                                         Transition.newBuilder()
                                                 .withTrigger(
                                                         FSMExecutor.FSMEvents.STATE_DONE.getName()
@@ -2989,13 +3004,8 @@ public class FSMTest {
                                 .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
                                 .withSource(J)
                                 .withTarget(K)
-                                .build(),
-                        // transition from nested fsm state H to P
-                        Transition.newBuilder()
-                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
-                                .withSource(H)
-                                .withTarget(P)
                                 .build()
+
                 )
                 .withVerbose(true)
                 .build();
@@ -3032,7 +3042,7 @@ public class FSMTest {
                 "exited FSM state J",
                 "entered state K",
                 "exited state K"
-        ), list);
+        ).toArray(), list.toArray());
 
 
     }
