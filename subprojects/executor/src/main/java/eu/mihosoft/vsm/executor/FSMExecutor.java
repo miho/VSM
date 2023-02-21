@@ -651,10 +651,6 @@ class FSMExecutor implements AsyncFSMExecutor {
 
         if (enterAndExit){
 
-            if(newState!=null && newState.getName().equals("K")) {
-                System.out.println("K");
-            }
-            
             // exit do-action of oldState
             if (!exitDoActionOfOldState(evt, oldState, newState)) return;
 
