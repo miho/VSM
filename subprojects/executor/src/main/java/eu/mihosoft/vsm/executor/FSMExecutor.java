@@ -651,8 +651,13 @@ class FSMExecutor implements AsyncFSMExecutor {
 
         if (enterAndExit){
 
+            if(newState!=null && newState.getName().equals("K")) {
+                System.out.println("K");
+            }
+            
             // exit do-action of oldState
             if (!exitDoActionOfOldState(evt, oldState, newState)) return;
+
 
             // exit do-action and state ancestors until we reach direct children of LAC(oldState, newState)
             for(State s : exitOldStateList) {

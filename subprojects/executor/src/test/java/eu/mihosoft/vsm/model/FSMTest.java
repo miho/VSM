@@ -676,7 +676,7 @@ public class FSMTest {
         return fsm;
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 5_000)
     public void enterNestedStateDirectlyTest() throws InterruptedException {
 
         for (int i = 0; i < NUM_ITERATIONS_SMALL_TESTS; i++) {
@@ -2947,6 +2947,11 @@ public class FSMTest {
                 .withName("J")
                 .withOnEntryAction((s, e) -> {
                     var msg = "entered FSM state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withOnExitAction((s, e) -> {
+                    var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
                 })
