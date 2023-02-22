@@ -614,7 +614,8 @@ class FSMExecutor implements AsyncFSMExecutor {
                     //LCA found
                     System.out.println("  -> LCA found:    " + srcParent.getName());
                     // print path to root
-                    System.out.println("  -> Path to root: " + pathToRootSrc.stream().map(s->s.getName()).collect(Collectors.toList()));
+                    System.out.println("  -> Path to root: " + pathToRootSrc.stream()
+                            .map(s->s.getName()).collect(Collectors.toList()));
                     break;
                 } else {
                     if(srcParent!=null) {
@@ -641,28 +642,45 @@ class FSMExecutor implements AsyncFSMExecutor {
             for (State s : exitOldStateList) {
                 System.out.println("!!!  -> exit state: " + s.getName());
             }
-
-            if(!exitOldStateList.isEmpty()) {
-                exitOldStateList = exitOldStateList.subList(0, exitOldStateList.size()-1);
-            }
         }
 
         boolean enterAndExit = !(oldState == newState && (consumer == null ? false : consumer.isLocal()));
 
-        if (enterAndExit){
+        if (enterAndExit) {
+
+            if(newState!=null && "a_b_a".equals(newState.getName())) {
+                System.out.println("!!! " + (oldState==null?"<none>":oldState.getName()) + " -> " + (newState==null?"<none>":newState.getName()));
+            }
 
             // exit do-action of oldState
             if (!exitDoActionOfOldState(evt, oldState, newState)) return;
 
+            for(var s : exitOldStateList) {
+                System.out.println("!!! !!! exit state: " + s.getName());
+            }
 
             // exit do-action and state ancestors until we reach direct children of LAC(oldState, newState)
             for(State s : exitOldStateList) {
+
+                System.out.println("!!! exit state from list: " + s.getName());
+
                 var returnFromMethodF = new AtomicBoolean(false);
-                s.getOwningFSM().getExecutor().accessFSMSafe(fsm->{
-                    if(!((FSMExecutor)s.getOwningFSM().getExecutor()).exitDoActionOfOldState(evt, s, newState)) {
-                        returnFromMethodF.set(true);
+//                s.getOwningFSM().getExecutor().accessFSMSafe(fsm->{
+
+                    System.out.println("!!! exiting");
+
+                    try {
+
+                        if (!((FSMExecutor) s.getOwningFSM().getExecutor()).exitDoActionOfOldState(evt, s, newState)) {
+                            System.out.println("!!! RETURN");
+                            returnFromMethodF.set(true);
+                        } else {
+                            System.out.println("!!! PERFORMED EXIT ACTION");
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
-                });
+//                });
 
                 if (returnFromMethodF.get()) return;
             }
@@ -871,7 +889,11 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
 
+        System.out.println("!!! exitDoActionOfOldState(): oldState: " + (oldState==null?"<none>":oldState.getName()) + " in " + getCaller().getName() + "");
+
         if (oldState != null && !(stateExited.get(oldState) == null ? false : stateExited.get(oldState))) {
+
+            System.out.println("!!! exitDoActionOfOldState(): accepted");
 
             try {
                 if (doActionThread != null && doActionFuture != null) {
@@ -892,6 +914,8 @@ class FSMExecutor implements AsyncFSMExecutor {
                 doActionFuture = null;
             }
 
+            System.out.println("!!! exitDoActionOfOldState(): 0 ");
+
             // exit children states
             if (oldState instanceof FSMState) {
                 FSMState fsmState = (FSMState) oldState;
@@ -903,32 +927,50 @@ class FSMExecutor implements AsyncFSMExecutor {
                 }
             }
 
+            System.out.println("!!! exitDoActionOfOldState(): 1 ");
+
             try {
                 StateAction exitAction = oldState.getOnExitAction();
+
+                System.out.println("!!! exitDoActionOfOldState(): 1:1 ");
+
                 if (exitAction != null) {
                     try {
-                        fsmLock.unlock();
-                        // exitAction.execute(oldState, evt);
+
+                        System.out.println("!!! exitDoActionOfOldState(): 1:2 ");
+
+//                        fsmLock.unlock();
+
+                        System.out.println("!!! exitDoActionOfOldState(): 1:3 ");
+
                         CompletableFuture.runAsync(() -> {
-                            fsmLock.lock();
+//                            fsmLock.lock();
                             try {
+                                System.out.println("!!! exitDoActionOfOldState(): 1:4 ");
                                 exitAction.execute(oldState, evt);
                             } finally {
-                                fsmLock.unlock();
+//                                fsmLock.unlock();
                             }
                         },executorService).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                     } finally {
-                        fsmLock.lock();
+//                        fsmLock.lock();
                     }
+                } else {
+                    System.out.println("!!! exitDoActionOfOldState(): no exit action for " + oldState.getName() + " in " + getCaller().getName() + "");
                 }
             } catch (Exception ex) {
                 // mark as exited, because exit action already failed (prevents stack-overflow)
+
+                System.out.println("!!! exitDoActionOfOldState(): exception: " + ex.getMessage() + " in " + getCaller().getName() + "");
+
                 stateExited.put(oldState, true);
                 handleExecutionError(evt, oldState, newState, ex);
                 return false;
             } finally {
                 stateExited.put(oldState, true);
             }
+
+            System.out.println("!!! exitDoActionOfOldState(): 2 ");
 
         } // end if oldState != null
 

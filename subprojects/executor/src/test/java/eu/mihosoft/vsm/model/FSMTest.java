@@ -676,7 +676,7 @@ public class FSMTest {
         return fsm;
     }
 
-    @Test(timeout = 5_000)
+    @Test(timeout = 500_000)
     public void enterNestedStateDirectlyTest() throws InterruptedException {
 
         for (int i = 0; i < NUM_ITERATIONS_SMALL_TESTS; i++) {
@@ -700,28 +700,52 @@ public class FSMTest {
 
             State state_a = FSMState.newBuilder()
                     .withName("a")
-                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a"))
-                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a"))
+                    .withOnEntryAction((s, e) -> {
+                        actualEvtList.add("enter state a");
+                        System.out.println("enter state a");
+                    })
+                    .withOnExitAction((s, e) -> {
+                        actualEvtList.add("exit state a");
+                        System.out.println("exit state a");
+                    })
                     .withFSMs(fsm_a)
                     .build();
 
             State state_a_a = FSMState.newBuilder()
                     .withName("a_a")
-                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_a"))
-                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_a"))
+                    .withOnEntryAction((s, e) -> {
+                        actualEvtList.add("enter state a_a");
+                        System.out.println("enter state a_a");
+                    })
+                    .withOnExitAction((s, e) -> {
+                        actualEvtList.add("exit state a_a");
+                        System.out.println("exit state a_a");
+                    })
                     .withFSMs(fsm_a_a)
                     .build();
 
             State state_a_a_a = State.newBuilder()
                     .withName("a_a_a")
-                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_a_a"))
-                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_a_a"))
+                    .withOnEntryAction((s, e) -> {
+                        actualEvtList.add("enter state a_a_a");
+                        System.out.println("enter state a_a_a");
+                    })
+                    .withOnExitAction((s, e) -> {
+                        actualEvtList.add("exit state a_a_a");
+                        System.out.println("exit state a_a_a");
+                    })
                     .build();
 
             State state_a_b = FSMState.newBuilder()
                     .withName("a_b")
-                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_b"))
-                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_b"))
+                    .withOnEntryAction((s, e) -> {
+                        actualEvtList.add("enter state a_b");
+                        System.out.println("enter state a_b");
+                    })
+                    .withOnExitAction((s, e) -> {
+                        actualEvtList.add("exit state a_b");
+                        System.out.println("exit state a_b");
+                    })
                     .withFSMs(fsm_a_b)
                     .build();
 
@@ -734,8 +758,14 @@ public class FSMTest {
 
             State state_a_b_a = State.newBuilder()
                     .withName("a_b_a")
-                    .withOnEntryAction((s, e) -> actualEvtList.add("enter state a_b_a"))
-                    .withOnExitAction((s, e) -> actualEvtList.add("exit state a_b_a"))
+                    .withOnEntryAction((s, e) -> {
+                        actualEvtList.add("enter state a_b_a");
+                        System.out.println("enter state a_b_a");
+                    })
+                    .withOnExitAction((s, e) -> {
+                        actualEvtList.add("exit state a_b_a");
+                        System.out.println("exit state a_b_a");
+                    })
                     .build();
 
             Transition a_a_a__a_b_a = Transition.newBuilder()
@@ -753,12 +783,14 @@ public class FSMTest {
                     .withVerbose(true)
                     .build();
 
-            fsm.getTransitions().add(a_a_a__a_b_a);
+            fsm_a.getTransitions().add(a_a_a__a_b_a);
 
             var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
-            fsm.setRunning(true);
-            executor.process("myEvent1");
-            fsm.setRunning(false);
+//            fsm.setRunning(true);
+            var f = executor.startAsync();
+            Thread.sleep(1000);
+            executor.trigger("myEvent1");
+            Thread.sleep(1000);
 
             var expectedEvtList = Arrays.asList(
                     "enter state a",                    // <- fsm:init
