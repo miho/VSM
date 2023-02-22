@@ -106,12 +106,6 @@ interface FSM extends WithName, StateChild {
     @Doc("Name of this state machine.")
     String getName();
 
-    @Doc("!!! DEBUG !!!")
-    State getFirstState();
-
-    @Doc("!!! DEBUG !!!")
-    State getLastState();
-
     @Doc("The initial state that is entered as soon as this state machine is started.")
     State getInitialState();
     @Doc("The current state of this state machine.")
