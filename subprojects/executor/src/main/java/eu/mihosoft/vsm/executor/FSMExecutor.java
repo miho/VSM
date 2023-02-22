@@ -418,7 +418,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                         }
 
                         if (evt.getAction() != null) {
-                            // evt.getAction().execute(evt, consumer);
                             fsmLock.unlock();
                             try {
                                 CompletableFuture.runAsync(() -> {
@@ -428,7 +427,8 @@ class FSMExecutor implements AsyncFSMExecutor {
                                     } finally {
                                         fsmLock.unlock();
                                     }
-                                }, executorService).orTimeout(MAX_EVT_CONSUMED_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).join();
+                                }, executorService)
+                                .orTimeout(MAX_EVT_CONSUMED_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).join();
                             } finally {
                                 fsmLock.lock();
                             }
@@ -628,59 +628,27 @@ class FSMExecutor implements AsyncFSMExecutor {
             }
         }
 
+        // reverse lists (remember: enter: outer-to-inner and exit: inner-to-outer)
         {
             Collections.reverse(enterNewStateList);
-            System.out.println("!!! " + enterNewStateList.size() + " states to enter");
-            for (State s : enterNewStateList) {
-                System.out.println("!!!  -> enter state: " + s.getName());
-            }
-        }
-
-        {
             Collections.reverse(exitOldStateList);
-            System.out.println("!!! " + exitOldStateList.size() + " states to exit");
-            for (State s : exitOldStateList) {
-                System.out.println("!!!  -> exit state: " + s.getName());
-            }
         }
 
         boolean enterAndExit = !(oldState == newState && (consumer == null ? false : consumer.isLocal()));
 
         if (enterAndExit) {
 
-            if(newState!=null && "a_b_a".equals(newState.getName())) {
-                System.out.println("!!! " + (oldState==null?"<none>":oldState.getName()) + " -> " + (newState==null?"<none>":newState.getName()));
-            }
-
             // exit do-action of oldState
             if (!exitDoActionOfOldState(evt, oldState, newState)) return;
-
-            for(var s : exitOldStateList) {
-                System.out.println("!!! !!! exit state: " + s.getName());
-            }
 
             // exit do-action and state ancestors until we reach direct children of LAC(oldState, newState)
             for(State s : exitOldStateList) {
 
-                System.out.println("!!! exit state from list: " + s.getName());
-
                 var returnFromMethodF = new AtomicBoolean(false);
-//                s.getOwningFSM().getExecutor().accessFSMSafe(fsm->{
 
-                    System.out.println("!!! exiting");
-
-                    try {
-
-                        if (!((FSMExecutor) s.getOwningFSM().getExecutor()).exitDoActionOfOldState(evt, s, newState)) {
-                            System.out.println("!!! RETURN");
-                            returnFromMethodF.set(true);
-                        } else {
-                            System.out.println("!!! PERFORMED EXIT ACTION");
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-//                });
+                if (!((FSMExecutor) s.getOwningFSM().getExecutor()).exitDoActionOfOldState(evt, s, newState)) {
+                    returnFromMethodF.set(true);
+                }
 
                 if (returnFromMethodF.get()) return;
             }
@@ -824,20 +792,11 @@ class FSMExecutor implements AsyncFSMExecutor {
 
         newState.getOwningFSM().getExecutor().accessFSMSafe((cfsm)->{
             // log state to set
-            System.out.println("!!! setting current state: " + newState.getName() + " in " + newState.getOwningFSM().getName() + "");
             cfsm.setCurrentState(newState);
             var executor = (FSMExecutor)newState.getOwningFSM().getExecutor();
             executor.stateExited.put(newState, false);
         });
 
-//        // transition done, set new current state
-//        fsmLock.lock();
-//        try {
-//            getCaller().setCurrentState(newState);
-//            stateExited.put(newState, false);
-//        } finally {
-//            fsmLock.unlock();
-//        }
     }
 
 
@@ -889,11 +848,7 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     private boolean exitDoActionOfOldState(Event evt, State oldState, State newState) {
 
-        System.out.println("!!! exitDoActionOfOldState(): oldState: " + (oldState==null?"<none>":oldState.getName()) + " in " + getCaller().getName() + "");
-
         if (oldState != null && !(stateExited.get(oldState) == null ? false : stateExited.get(oldState))) {
-
-            System.out.println("!!! exitDoActionOfOldState(): accepted");
 
             try {
                 if (doActionThread != null && doActionFuture != null) {
@@ -914,8 +869,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                 doActionFuture = null;
             }
 
-            System.out.println("!!! exitDoActionOfOldState(): 0 ");
-
             // exit children states
             if (oldState instanceof FSMState) {
                 FSMState fsmState = (FSMState) oldState;
@@ -927,50 +880,22 @@ class FSMExecutor implements AsyncFSMExecutor {
                 }
             }
 
-            System.out.println("!!! exitDoActionOfOldState(): 1 ");
-
             try {
                 StateAction exitAction = oldState.getOnExitAction();
 
-                System.out.println("!!! exitDoActionOfOldState(): 1:1 ");
-
                 if (exitAction != null) {
-                    try {
-
-                        System.out.println("!!! exitDoActionOfOldState(): 1:2 ");
-
-//                        fsmLock.unlock();
-
-                        System.out.println("!!! exitDoActionOfOldState(): 1:3 ");
-
-                        CompletableFuture.runAsync(() -> {
-//                            fsmLock.lock();
-                            try {
-                                System.out.println("!!! exitDoActionOfOldState(): 1:4 ");
-                                exitAction.execute(oldState, evt);
-                            } finally {
-//                                fsmLock.unlock();
-                            }
-                        },executorService).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
-                    } finally {
-//                        fsmLock.lock();
-                    }
-                } else {
-                    System.out.println("!!! exitDoActionOfOldState(): no exit action for " + oldState.getName() + " in " + getCaller().getName() + "");
+                    CompletableFuture.runAsync(() -> {
+                        exitAction.execute(oldState, evt);
+                    },executorService).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                 }
             } catch (Exception ex) {
                 // mark as exited, because exit action already failed (prevents stack-overflow)
-
-                System.out.println("!!! exitDoActionOfOldState(): exception: " + ex.getMessage() + " in " + getCaller().getName() + "");
-
                 stateExited.put(oldState, true);
                 handleExecutionError(evt, oldState, newState, ex);
                 return false;
             } finally {
                 stateExited.put(oldState, true);
             }
-
-            System.out.println("!!! exitDoActionOfOldState(): 2 ");
 
         } // end if oldState != null
 

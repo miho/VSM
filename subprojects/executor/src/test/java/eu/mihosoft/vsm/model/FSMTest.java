@@ -676,7 +676,7 @@ public class FSMTest {
         return fsm;
     }
 
-    @Test(timeout = 500_000)
+    @Test(timeout = 5_000)
     public void enterNestedStateDirectlyTest() throws InterruptedException {
 
         for (int i = 0; i < NUM_ITERATIONS_SMALL_TESTS; i++) {
@@ -786,11 +786,9 @@ public class FSMTest {
             fsm_a.getTransitions().add(a_a_a__a_b_a);
 
             var executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
-//            fsm.setRunning(true);
-            var f = executor.startAsync();
-            Thread.sleep(1000);
-            executor.trigger("myEvent1");
-            Thread.sleep(1000);
+            fsm.setRunning(true);
+            executor.process("myEvent1");
+            fsm.setRunning(false);
 
             var expectedEvtList = Arrays.asList(
                     "enter state a",                    // <- fsm:init
@@ -1095,7 +1093,6 @@ public class FSMTest {
                 .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
                 .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
                 .build();
-
 
         Transition closeDoor = Transition.newBuilder()
                 .withTrigger(event_close)
@@ -3079,7 +3076,7 @@ public class FSMTest {
                 "exited FSM state J",
                 "entered state K",
                 "exited state K"
-        ).toArray(), list.toArray());
+        ), new ArrayList<>(list));
 
 
     }
