@@ -34,7 +34,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13'
     testImplementation 'org.hamcrest:hamcrest:2.2'
 
     implementation "eu.mihosoft.vmf:vmf:${rootProject.commonProps.get("vmf.version")}"

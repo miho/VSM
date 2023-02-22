@@ -24,7 +24,7 @@ plugins {
 }
 
 dependencies {
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.hamcrest:hamcrest:2.2'
 
     implementation "eu.mihosoft.vmf:vmf-runtime:${rootProject.commonProps.get("vmf.version")}"
