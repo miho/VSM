@@ -699,7 +699,6 @@ class FSMExecutor implements AsyncFSMExecutor {
 
                             try {
                                 fsmLock.unlock();
-                                //entryAction.execute(s, evt);
                                 CompletableFuture.runAsync(() -> {
                                     fsmLock.lock();
                                     try {
@@ -747,19 +746,9 @@ class FSMExecutor implements AsyncFSMExecutor {
                 var entryActions = newState.getOnEntryActions();
                 for (var entryAction : entryActions) {
                     if (entryAction != null) {
-                        try {
-                            fsmLock.unlock();
-                            CompletableFuture.runAsync(() -> {
-                                fsmLock.lock();
-                                try {
-                                    entryAction.execute(newState, evt);
-                                } finally {
-                                    fsmLock.unlock();
-                                }
-                            }, executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
-                        } finally {
-                            fsmLock.lock();
-                        }
+                        CompletableFuture.runAsync(() -> {
+                                entryAction.execute(newState, evt);
+                        }, executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                     }
                 }
             } catch (Exception ex) {
@@ -891,12 +880,13 @@ class FSMExecutor implements AsyncFSMExecutor {
             }
 
             try {
-                StateAction exitAction = oldState.getOnExitAction();
-
-                if (exitAction != null) {
-                    CompletableFuture.runAsync(() -> {
-                        exitAction.execute(oldState, evt);
-                    },executorService).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                var exitActions = oldState.getOnExitActions();
+                for (StateAction exitAction : exitActions) {
+                    if (exitAction != null) {
+                        CompletableFuture.runAsync(() -> {
+                            exitAction.execute(oldState, evt);
+                        }, executorService).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                    }
                 }
             } catch (Exception ex) {
                 // mark as exited, because exit action already failed (prevents stack-overflow)

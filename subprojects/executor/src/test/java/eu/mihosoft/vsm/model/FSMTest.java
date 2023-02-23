@@ -514,7 +514,7 @@ public class FSMTest {
                     enterExitList.add("enter state a");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("exit state a");
                     enterExitList.add("exit state a");
                 })
@@ -526,7 +526,7 @@ public class FSMTest {
                     enterExitList.add("enter state b");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("exit state b");
                     enterExitList.add("exit state b");
                 })
@@ -539,7 +539,7 @@ public class FSMTest {
                     enterExitList.add("enter state ca1");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state ca1");
                     enterExitList.add("exit state ca1");
                 })
@@ -552,7 +552,7 @@ public class FSMTest {
                     enterExitList.add("enter state cb1");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state cb1");
                     enterExitList.add("exit state cb1");
                 })
@@ -565,7 +565,7 @@ public class FSMTest {
                     enterExitList.add("enter state ca2");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state ca2");
                     enterExitList.add("exit state ca2");
                 })
@@ -578,7 +578,7 @@ public class FSMTest {
                     enterExitList.add("enter state cb2");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state cb2");
                     enterExitList.add("exit state cb2");
                 })
@@ -591,7 +591,7 @@ public class FSMTest {
                     System.out.println("enter state c");
                     enterExitList.add("enter state c");
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("exit state c");
                     enterExitList.add("exit state c");
                 })
@@ -704,7 +704,7 @@ public class FSMTest {
                         actualEvtList.add("enter state a");
                         System.out.println("enter state a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a");
                         System.out.println("exit state a");
                     })
@@ -717,7 +717,7 @@ public class FSMTest {
                         actualEvtList.add("enter state a_a");
                         System.out.println("enter state a_a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_a");
                         System.out.println("exit state a_a");
                     })
@@ -730,7 +730,7 @@ public class FSMTest {
                         actualEvtList.add("enter state a_a_a");
                         System.out.println("enter state a_a_a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_a_a");
                         System.out.println("exit state a_a_a");
                     })
@@ -742,7 +742,7 @@ public class FSMTest {
                         actualEvtList.add("enter state a_b");
                         System.out.println("enter state a_b");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_b");
                         System.out.println("exit state a_b");
                     })
@@ -762,7 +762,7 @@ public class FSMTest {
                         actualEvtList.add("enter state a_b_a");
                         System.out.println("enter state a_b_a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_b_a");
                         System.out.println("exit state a_b_a");
                     })
@@ -821,19 +821,19 @@ public class FSMTest {
                 .withOnEntryActions((s, e) -> {
                     actualEvtList.add("enter opened");
                 })
-                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit opened"))
                 .build();
 
         State closed = State.newBuilder()
                 .withName("closed")
                 .withOnEntryActions((s, e) -> actualEvtList.add("enter closed"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit closed"))
                 .build();
 
         State locked = State.newBuilder()
                 .withName("locked")
                 .withOnEntryActions((s, e) -> actualEvtList.add("enter locked"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit locked"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit locked"))
                 .build();
 
 
@@ -953,13 +953,13 @@ public class FSMTest {
                 .withOnEntryActions((s, e) -> {
                     actualEvtList.add("enter opened");
                 })
-                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit opened"))
                 .build();
 
         State closed = State.newBuilder()
                 .withName("closed")
                 .withOnEntryActions((s, e) -> actualEvtList.add("enter closed"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit closed"))
                 .build();
 
 
@@ -1085,13 +1085,13 @@ public class FSMTest {
                 .withOnEntryActions((s, e) -> {
                     actualEvtList.add("enter opened");
                 })
-                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit opened"))
                 .build();
 
         State closed = State.newBuilder()
                 .withName("closed")
                 .withOnEntryActions((s, e) -> actualEvtList.add("enter closed"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit closed"))
                 .build();
 
         Transition closeDoor = Transition.newBuilder()
@@ -1212,19 +1212,19 @@ public class FSMTest {
         State childState1 = State.newBuilder()
                 .withName("Child1")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         State childState2 = State.newBuilder()
                 .withName("Child2")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         var parentState = FSMState.newBuilder()
                 .withName("Parent")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .withFSMs(FSM.newBuilder().withName("Nested FSM")
                         .withInitialState(childState1)
                         .withOwnedState(childState1, childState2)
@@ -1378,13 +1378,13 @@ public class FSMTest {
         State c1 = State.newBuilder()
                 .withName("c1")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         State c2 = State.newBuilder()
                 .withName("c2")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         Transition c1_c2 = Transition.newBuilder()
@@ -1397,7 +1397,7 @@ public class FSMTest {
         FSMState parent = FSMState.newBuilder()
                 .withName("parent")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .withFSMs(FSM.newBuilder()
                         .withName("parent:r1")
                         .withOwnedState(c1, c2)
@@ -1410,13 +1410,13 @@ public class FSMTest {
         State s1 = State.newBuilder()
                 .withName("s1")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         State s2 = State.newBuilder()
                 .withName("s2")
                 .withOnEntryActions(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         Transition s1_parent = Transition.newBuilder()
@@ -1590,7 +1590,7 @@ public class FSMTest {
 
             fsm.vmf().content().stream(State.class).forEach(s -> {
                 s.getOnEntryActions().add(entryAction);
-                s.setOnExitAction(exitAction);
+                s.getOnExitActions().add(exitAction);
             });
 
             fsm.vmf().content().stream(Transition.class).forEach(t -> {
@@ -1725,7 +1725,7 @@ public class FSMTest {
 
         fsm.vmf().content().stream(State.class).forEach(s -> {
             s.getOnEntryActions().add(entryAction);
-            s.setOnExitAction(exitAction);
+            s.getOnExitActions().add(exitAction);
         });
 
         fsm.vmf().content().stream(Transition.class).forEach(t -> {
@@ -2834,7 +2834,7 @@ public class FSMTest {
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2866,7 +2866,7 @@ public class FSMTest {
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2911,7 +2911,7 @@ public class FSMTest {
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2952,7 +2952,7 @@ public class FSMTest {
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2991,7 +2991,7 @@ public class FSMTest {
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -3127,7 +3127,7 @@ public class FSMTest {
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
