@@ -230,6 +230,10 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     @Override
     public boolean processRemainingEvents() {
+        return processRemainingEvents(false);
+    }
+
+    private boolean processRemainingEvents(boolean enterOnly) {
 
         // everything modified concurrently with start(), reset(), stop() etc. must be inside
         // locked code block
@@ -281,6 +285,8 @@ class FSMExecutor implements AsyncFSMExecutor {
                         + fsmState.getFSMs().stream().map(cfsm -> cfsm.getName()).collect(Collectors.toList()));
             }
         }
+
+        if(enterOnly) return false;
 
         for (Iterator<Event> iter = evtQueue.iterator(); iter.hasNext() && getCaller().isRunning(); ) {
 
@@ -698,7 +704,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                                 try {
                                     entryAction.execute(s, evt);
                                 } finally {
-                                    System.out.println("!!! state: " + s.getName() + " in " + s.getOwningFSM().getName() + "");
                                     s.getOwningFSM().setCurrentState(s);
                                     fsmLock.unlock();
                                 }
@@ -720,7 +725,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                                 // create a new execute for child fsm if it doesn't exist yet
                                 if (childFSM.getExecutor() == null) {
                                     s.getOwningFSM().getExecutor().newChild(childFSM);
-                                    //getCaller().getExecutor().newChild(childFSM);
                                 }
                                 eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
                                 executor.reset();
@@ -743,7 +747,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                 if (entryAction != null) {
                     try {
                         fsmLock.unlock();
-                        //entryAction.execute(newState, evt);
                         CompletableFuture.runAsync(() -> {
                             fsmLock.lock();
                             try {
@@ -763,7 +766,6 @@ class FSMExecutor implements AsyncFSMExecutor {
             }
 
             // execute do-action
-//            if (!executeDoActionOfNewState(evt, oldState, newState)) return;
             if (!((FSMExecutor)newState.getOwningFSM().getExecutor()).executeDoActionOfNewState(evt, oldState, newState)) return;
 
         }
@@ -793,6 +795,12 @@ class FSMExecutor implements AsyncFSMExecutor {
         newState.getOwningFSM().getExecutor().accessFSMSafe((cfsm)->{
             // log state to set
             cfsm.setCurrentState(newState);
+
+            if(newState !=null && newState instanceof FSMState) {
+                // ensure we properly enter the state after the transition
+                ((FSMExecutor)newState.getOwningFSM().getExecutor()).processRemainingEvents(true);
+            }
+
             var executor = (FSMExecutor)newState.getOwningFSM().getExecutor();
             executor.stateExited.put(newState, false);
         });

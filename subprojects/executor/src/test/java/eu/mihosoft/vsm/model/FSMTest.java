@@ -1197,71 +1197,83 @@ public class FSMTest {
 
     }
 
-//    @Test
-//    public void localVsExternalTransitionTest() {
-//        var actualEvtList = new ArrayList<String>();
-//
-//        StateAction entryAction = (s, e) -> {
-//            actualEvtList.add("enter " + s.getName());
-//        };
-//
-//        StateAction exitAction = (s, e) -> {
-//            actualEvtList.add("exit " + s.getName());
-//        };
-//
-//        State childState1 = State.newBuilder()
-//                .withName("Child1")
-//                .withOnEntryAction(entryAction)
-//                .withOnExitAction(exitAction)
-//                .build();
-//
-//        State childState2 = State.newBuilder()
-//                .withName("Child2")
-//                .withOnEntryAction(entryAction)
-//                .withOnExitAction(exitAction)
-//                .build();
-//
-//        State parentState = FSMState.newBuilder()
-//                .withName("Parent")
-//                .withOnEntryAction(entryAction)
-//                .withOnExitAction(exitAction)
-//                .withFSMs(FSM.newBuilder().withName("Nested FSM")
-//                        .withInitialState(childState1)
-//                        .withOwnedState(childState1, childState2)
-//                        .build())
-//                .build();
-//
-//        Transition t = Transition.newBuilder()
-//                .withTrigger("event")
-//                .withSource(parentState)
-//                .withTarget(childState2)
-//                .build();
-//
-//        FSM fsm = FSM.newBuilder()
-//                .withInitialState(parentState)
-//                .withOwnedState(parentState)
-//                .withTransitions(t)
-//                .build();
-//
-//        Executor executor = Executor.newInstance(fsm, MODE);
-//
-//        fsm.setRunning(true);
-//        executor.process("event");
-//        fsm.setRunning(false);
-//
-//        System.out.println(actualEvtList);
-//
-//        actualEvtList.clear();
-//
-//        t.setLocal(true);
-//        fsm.setRunning(true);
-//        executor.reset();
-//        executor.process("event");
-//        fsm.setRunning(false);
-//
-//        System.out.println(actualEvtList);
-//
-//    }
+    @Test
+    public void localVsExternalTransitionTest() {
+        var actualEvtList = new CopyOnWriteArrayList<>();
+
+        StateAction entryAction = (s, e) -> {
+            actualEvtList.add("enter " + s.getName());
+        };
+
+        StateAction exitAction = (s, e) -> {
+            actualEvtList.add("exit " + s.getName());
+        };
+
+        State childState1 = State.newBuilder()
+                .withName("Child1")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
+
+        State childState2 = State.newBuilder()
+                .withName("Child2")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .build();
+
+        var parentState = FSMState.newBuilder()
+                .withName("Parent")
+                .withOnEntryAction(entryAction)
+                .withOnExitAction(exitAction)
+                .withFSMs(FSM.newBuilder().withName("Nested FSM")
+                        .withInitialState(childState1)
+                        .withOwnedState(childState1, childState2)
+                        .build())
+                .build();
+
+        Transition t = Transition.newBuilder()
+                .withTrigger("event")
+                .withSource(parentState)
+                .withTarget(parentState)
+                .build();
+
+        FSM fsm = FSM.newBuilder()
+                .withInitialState(parentState)
+                .withOwnedState(parentState)
+                .withTransitions(t)
+                .build();
+
+        FSMExecutor executor = FSMExecutors.newAsyncExecutor(fsm, MODE);
+
+        fsm.setRunning(true);
+        executor.process("event");
+        fsm.setRunning(false);
+
+        final var actualEvtsNonLocal = new ArrayList<>(actualEvtList);
+        System.out.println(actualEvtsNonLocal);
+
+        actualEvtList.clear();
+
+        t.setLocal(true);
+        fsm.setRunning(true);
+        executor.reset();
+        executor.process("event");
+        fsm.setRunning(false);
+
+        final var actualEvtsLocal = new ArrayList<>(actualEvtList);
+
+        System.out.println(actualEvtsLocal);
+
+        Assert.assertEquals(List.of(
+                "enter Parent", "enter Child1", "exit Child1", "exit Parent", "enter Parent", "enter Child1"),
+                actualEvtsNonLocal
+        );
+
+        Assert.assertEquals(List.of(
+                "enter Parent", "enter Child1"),
+                actualEvtsLocal
+        );
+    }
 
     @Test
     public void transitionPriorityTest1() throws InterruptedException, ExecutionException {
@@ -3077,7 +3089,69 @@ public class FSMTest {
                 "entered state K",
                 "exited state K"
         ), new ArrayList<>(list));
+    }
 
+    @Test(timeout = 5000)
+    public void exitVsFinalTest() {
+
+        // +---+----------------------------------------+
+        // | A |                                        |
+        // +---+                                        |
+        // |                                            |
+        // |    +---+       +---+       +---+           |
+        // |    | C +-------> D +-------> E |           |
+        // |    +---+       +---+       +---+           |
+        // |                                            |
+        // |                                            |
+        // |                                            |        +---+
+        // +--------------------------------------------+------->| B |
+        // |                                            |        +---+
+        // |                                            |
+        // |                                            |
+        // |    +---+       +---+       +---+           |
+        // |    | F +-------> G +-------> H |           |
+        // |    +---+       +---+       +---+           |
+        // |                                            |
+        // |                                            |
+        // |                                            |
+        // +--------------------------------------------+
+        //
+
+        var list = new CopyOnWriteArrayList<String>();
+
+        // create the states of the fsm
+        var C = State.newBuilder()
+                .withName("C")
+                .withOnEntryAction((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withOnExitAction((s, e) -> {
+                    var msg = "exited state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+
+        //
+        // +---+----------------------------------------+
+        // | A |                                        |
+        // +---+                                        |
+        // |    +---+       +---+       +---+           |
+        // |    | C +-------> D +-------> E +-----------+----------+
+        // |    +---+       +---+       +---+           |          |
+        // |                                            |          |
+        // |                                            |        +-v-+
+        // +--------------------------------------------+        | B |
+        // |                                            |        +---+
+        // |                                            |
+        // |    +---+       +---+       +---+           |
+        // |    | F +-------> G +-------> H |           |
+        // |    +---+       +---+       +---+           |
+        // |                                            |
+        // +--------------------------------------------+
 
     }
 }
