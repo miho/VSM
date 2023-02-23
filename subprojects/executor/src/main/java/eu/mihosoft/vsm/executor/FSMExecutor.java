@@ -696,7 +696,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                     var entryActions = s.getOnEntryActions();
                     for(var entryAction : entryActions) {
                         if (entryAction != null) {
-
                             try {
                                 fsmLock.unlock();
                                 CompletableFuture.runAsync(() -> {
@@ -714,7 +713,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                         }
                     }
                     if (!((FSMExecutor)s.getOwningFSM().getExecutor()).executeDoActionOfNewState(evt, oldS, s)) return;
-//                    if (!executeDoActionOfNewState(evt, s, newState)) return;
 
                     // enter children states
                     if(enterAndExit &&  s instanceof FSMState) {
