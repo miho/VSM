@@ -87,12 +87,12 @@ interface StateChild {
 
 @InterfaceOnly
 interface WithStateActions {
-    @Doc("Actions to be executed when entering a state.")
-    StateAction[] getOnEntryActions();
-    @Doc("Actions to be executed as long as the owning state machine is currently in this state.")
-    StateAction[] getDoActions();
-    @Doc("Actions to be executed when exiting a state. ")
-    StateAction[] getOnExitActions();
+    @Doc("Action to be executed when entering a state.")
+    StateAction getOnEntryAction();
+    @Doc("Action to be executed as long as the owning state machine is currently in this state.")
+    StateAction getDoAction();
+    @Doc("Action to be executed when exiting a state. ")
+    StateAction getOnExitAction();
 }
 
 @Doc("A finite state machine that contains states and transitions between them.")
