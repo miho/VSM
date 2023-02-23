@@ -66,23 +66,23 @@ public class FSMTest {
 
         for (int i = 0; i < NUM_ITERATIONS_LARGE_TESTS; i++) {
 
-            State idleState = State.newBuilder().withName("idle").withOnEntryAction(
+            State idleState = State.newBuilder().withName("idle").withOnEntryActions(
                     (s, e) -> {
                         System.out.println("Machine Idle State");
                     }).build();
 
             State cardInserted = State.newBuilder().withName("cardInserted")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("Card Inserted State");
                     }).build();
 
             State pinEnteredState = State.newBuilder().withName("pinEntered")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("Pin Entered State");
                     }).build();
 
             State amountRequested = State.newBuilder().withName("amountRequested")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("Amount Requested State");
                     }).build();
 
@@ -128,7 +128,7 @@ public class FSMTest {
 
             State errorState = State.newBuilder()
                     .withName("Error")
-                    .withOnEntryAction((state, event) -> {
+                    .withOnEntryActions((state, event) -> {
                         System.out.println("ERROR: ");
                     })
                     .build();
@@ -509,24 +509,24 @@ public class FSMTest {
 
         State stateA = State.newBuilder()
                 .withName("State A")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     System.out.println("enter state a");
                     enterExitList.add("enter state a");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("exit state a");
                     enterExitList.add("exit state a");
                 })
                 .build();
         State stateB = State.newBuilder()
                 .withName("State B")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     System.out.println("enter state b");
                     enterExitList.add("enter state b");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("exit state b");
                     enterExitList.add("exit state b");
                 })
@@ -534,12 +534,12 @@ public class FSMTest {
 
         State stateCA1 = State.newBuilder()
                 .withName("State CA1")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     System.out.println("  enter state ca1");
                     enterExitList.add("enter state ca1");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state ca1");
                     enterExitList.add("exit state ca1");
                 })
@@ -547,12 +547,12 @@ public class FSMTest {
 
         State stateCB1 = State.newBuilder()
                 .withName("State CB1")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     System.out.println("  enter state cb1");
                     enterExitList.add("enter state cb1");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state cb1");
                     enterExitList.add("exit state cb1");
                 })
@@ -560,12 +560,12 @@ public class FSMTest {
 
         State stateCA2 = State.newBuilder()
                 .withName("State CA2")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     System.out.println("  enter state ca2");
                     enterExitList.add("enter state ca2");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state ca2");
                     enterExitList.add("exit state ca2");
                 })
@@ -573,12 +573,12 @@ public class FSMTest {
 
         State stateCB2 = State.newBuilder()
                 .withName("State CB2")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     System.out.println("  enter state cb2");
                     enterExitList.add("enter state cb2");
                 })
 //                .withDoAction()
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("  exit state cb2");
                     enterExitList.add("exit state cb2");
                 })
@@ -587,15 +587,15 @@ public class FSMTest {
 
         FSMState stateC = FSMState.newBuilder()
                 .withName("State C")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     System.out.println("enter state c");
                     enterExitList.add("enter state c");
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     System.out.println("exit state c");
                     enterExitList.add("exit state c");
                 })
-                .withDoAction((s, e) -> {
+                .withDoActions((s, e) -> {
                     try {
                         System.out.println("enter do-action-in-state-c");
                         enterExitList.add("enter do-action-in-state-c");
@@ -700,11 +700,11 @@ public class FSMTest {
 
             State state_a = FSMState.newBuilder()
                     .withName("a")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         actualEvtList.add("enter state a");
                         System.out.println("enter state a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a");
                         System.out.println("exit state a");
                     })
@@ -713,11 +713,11 @@ public class FSMTest {
 
             State state_a_a = FSMState.newBuilder()
                     .withName("a_a")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         actualEvtList.add("enter state a_a");
                         System.out.println("enter state a_a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_a");
                         System.out.println("exit state a_a");
                     })
@@ -726,11 +726,11 @@ public class FSMTest {
 
             State state_a_a_a = State.newBuilder()
                     .withName("a_a_a")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         actualEvtList.add("enter state a_a_a");
                         System.out.println("enter state a_a_a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_a_a");
                         System.out.println("exit state a_a_a");
                     })
@@ -738,11 +738,11 @@ public class FSMTest {
 
             State state_a_b = FSMState.newBuilder()
                     .withName("a_b")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         actualEvtList.add("enter state a_b");
                         System.out.println("enter state a_b");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_b");
                         System.out.println("exit state a_b");
                     })
@@ -758,11 +758,11 @@ public class FSMTest {
 
             State state_a_b_a = State.newBuilder()
                     .withName("a_b_a")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         actualEvtList.add("enter state a_b_a");
                         System.out.println("enter state a_b_a");
                     })
-                    .withOnExitAction((s, e) -> {
+                    .withOnExitActions((s, e) -> {
                         actualEvtList.add("exit state a_b_a");
                         System.out.println("exit state a_b_a");
                     })
@@ -818,22 +818,22 @@ public class FSMTest {
 
         State opened = State.newBuilder()
                 .withName("opened")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     actualEvtList.add("enter opened");
                 })
-                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit opened"))
                 .build();
 
         State closed = State.newBuilder()
                 .withName("closed")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .withOnEntryActions((s, e) -> actualEvtList.add("enter closed"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit closed"))
                 .build();
 
         State locked = State.newBuilder()
                 .withName("locked")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter locked"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit locked"))
+                .withOnEntryActions((s, e) -> actualEvtList.add("enter locked"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit locked"))
                 .build();
 
 
@@ -950,16 +950,16 @@ public class FSMTest {
 
         State opened = State.newBuilder()
                 .withName("opened")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     actualEvtList.add("enter opened");
                 })
-                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit opened"))
                 .build();
 
         State closed = State.newBuilder()
                 .withName("closed")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .withOnEntryActions((s, e) -> actualEvtList.add("enter closed"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit closed"))
                 .build();
 
 
@@ -1082,16 +1082,16 @@ public class FSMTest {
 
         State opened = State.newBuilder()
                 .withName("opened")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     actualEvtList.add("enter opened");
                 })
-                .withOnExitAction((s, e) -> actualEvtList.add("exit opened"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit opened"))
                 .build();
 
         State closed = State.newBuilder()
                 .withName("closed")
-                .withOnEntryAction((s, e) -> actualEvtList.add("enter closed"))
-                .withOnExitAction((s, e) -> actualEvtList.add("exit closed"))
+                .withOnEntryActions((s, e) -> actualEvtList.add("enter closed"))
+                .withOnExitActions((s, e) -> actualEvtList.add("exit closed"))
                 .build();
 
         Transition closeDoor = Transition.newBuilder()
@@ -1211,20 +1211,20 @@ public class FSMTest {
 
         State childState1 = State.newBuilder()
                 .withName("Child1")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         State childState2 = State.newBuilder()
                 .withName("Child2")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         var parentState = FSMState.newBuilder()
                 .withName("Parent")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .withFSMs(FSM.newBuilder().withName("Nested FSM")
                         .withInitialState(childState1)
                         .withOwnedState(childState1, childState2)
@@ -1377,14 +1377,14 @@ public class FSMTest {
 
         State c1 = State.newBuilder()
                 .withName("c1")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         State c2 = State.newBuilder()
                 .withName("c2")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         Transition c1_c2 = Transition.newBuilder()
@@ -1396,8 +1396,8 @@ public class FSMTest {
 
         FSMState parent = FSMState.newBuilder()
                 .withName("parent")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .withFSMs(FSM.newBuilder()
                         .withName("parent:r1")
                         .withOwnedState(c1, c2)
@@ -1409,14 +1409,14 @@ public class FSMTest {
 
         State s1 = State.newBuilder()
                 .withName("s1")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         State s2 = State.newBuilder()
                 .withName("s2")
-                .withOnEntryAction(entryAction)
-                .withOnExitAction(exitAction)
+                .withOnEntryActions(entryAction)
+                .withOnExitActions(exitAction)
                 .build();
 
         Transition s1_parent = Transition.newBuilder()
@@ -1528,7 +1528,7 @@ public class FSMTest {
             FSMState childFSMState = FSMState.newBuilder()
                     .withName("ChildFSMState")
                     .withFSMs(childFSM1, childFSM2)
-                    .withDoAction((s, e) -> {
+                    .withDoActions((s, e) -> {
                         try {
                             System.out.println("!!! cfsm: enter");
                             Thread.sleep(1500);
@@ -1545,7 +1545,7 @@ public class FSMTest {
 
             State s2 = State.newBuilder()
                     .withName("s2")
-                    .withDoAction((s, e) -> {
+                    .withDoActions((s, e) -> {
                         try {
                             System.out.println("!!! s2: enter");
                             Thread.sleep(150);
@@ -1589,8 +1589,8 @@ public class FSMTest {
                     .build();
 
             fsm.vmf().content().stream(State.class).forEach(s -> {
-                s.setOnEntryAction(entryAction);
-                s.setOnExitAction(exitAction);
+                s.getOnEntryActions().add(entryAction);
+                s.getOnExitActions().add(exitAction);
             });
 
             fsm.vmf().content().stream(Transition.class).forEach(t -> {
@@ -1724,8 +1724,8 @@ public class FSMTest {
 
 
         fsm.vmf().content().stream(State.class).forEach(s -> {
-            s.setOnEntryAction(entryAction);
-            s.setOnExitAction(exitAction);
+            s.getOnEntryActions().add(entryAction);
+            s.getOnExitActions().add(exitAction);
         });
 
         fsm.vmf().content().stream(Transition.class).forEach(t -> {
@@ -1768,7 +1768,7 @@ public class FSMTest {
                 .build();
         State s2 = State.newBuilder()
                 .withName("s1")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     throw new RuntimeException("Exception in s2");
                 })
                 .build();
@@ -1781,7 +1781,7 @@ public class FSMTest {
 
         State error = State.newBuilder()
                 .withName("ERROR")
-                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .withOnEntryActions((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
                 .build();
 
         FSM fsm = FSM.newBuilder()
@@ -1810,7 +1810,7 @@ public class FSMTest {
                 .build();
         State s2 = State.newBuilder()
                 .withName("s1")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     throw new RuntimeException("Exception in s2");
                 })
                 .build();
@@ -1831,7 +1831,7 @@ public class FSMTest {
 
         State error = State.newBuilder()
                 .withName("ERROR")
-                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .withOnEntryActions((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
                 .build();
 
         FSMState child = FSMState.newBuilder()
@@ -1869,7 +1869,7 @@ public class FSMTest {
                 .build();
         State s2 = State.newBuilder()
                 .withName("s2")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     throw new RuntimeException("Exception in s2");
                 })
                 .build();
@@ -1890,7 +1890,7 @@ public class FSMTest {
 
         State error = State.newBuilder()
                 .withName("ERROR")
-                .withOnEntryAction((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
+                .withOnEntryActions((s, e) -> System.out.println("Error: " + e.getArgs().get(0)))
                 .build();
 
         FSMState child = FSMState.newBuilder()
@@ -1947,7 +1947,7 @@ public class FSMTest {
             var s1EnteredF = new CompletableFuture<Void>();
             State s1 = State.newBuilder()
                     .withName("s1")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entered state " + s.getName());
                         s1EnteredF.complete(null);
                     })
@@ -1955,7 +1955,7 @@ public class FSMTest {
 
             State s2 = State.newBuilder()
                     .withName("s2")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entered state " + s.getName());
                     })
                     .build();
@@ -1963,7 +1963,7 @@ public class FSMTest {
             Function<Integer, FSM> fsmCreator = (i) -> {
                 State s1i = State.newBuilder()
                         .withName("s1i")
-                        .withOnEntryAction((s, e) -> {
+                        .withOnEntryActions((s, e) -> {
                             System.out.println("cfsm" + i + " entered state " + s.getName());
                             sleepRandom(0, 250);
                         })
@@ -1971,7 +1971,7 @@ public class FSMTest {
 
                 State s2i = State.newBuilder()
                         .withName("s2i")
-                        .withOnEntryAction((s, e) -> {
+                        .withOnEntryActions((s, e) -> {
                             System.out.println("cfsm" + i + " entered state " + s.getName());
                             sleepRandom(0, 250);
                         })
@@ -2003,7 +2003,7 @@ public class FSMTest {
             FSMState s3 = FSMState.newBuilder()
                     .withName("s3")
                     .withFSMs(childFSMs)
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entering state " + s.getName());
                         s3EnteredF.complete(null);
                     })
@@ -2126,7 +2126,7 @@ public class FSMTest {
             var s1EnteredF = new CompletableFuture<Void>();
             State s1 = State.newBuilder()
                     .withName("s1")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entered state " + s.getName()
                                 + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                         s1EnteredF.complete(null);
@@ -2135,7 +2135,7 @@ public class FSMTest {
 
             State s2 = State.newBuilder()
                     .withName("s2")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entered state " + s.getName()
                                 + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                         );
@@ -2145,7 +2145,7 @@ public class FSMTest {
             Function<Integer, FSM> fsmCreator = (i) -> {
                 State s1i = State.newBuilder()
                         .withName("s1i")
-                        .withOnEntryAction((s, e) -> {
+                        .withOnEntryActions((s, e) -> {
                             System.out.println("cfsm" + i + " entered state " + s.getName()
                                     + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date())
                             );
@@ -2155,7 +2155,7 @@ public class FSMTest {
 
                 State s2i = State.newBuilder()
                         .withName("s2i")
-                        .withOnEntryAction((s, e) -> {
+                        .withOnEntryActions((s, e) -> {
                             System.out.println("cfsm" + i + " entered state " + s.getName()
                                     + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                             sleepRandom(0, 250);
@@ -2188,7 +2188,7 @@ public class FSMTest {
             FSMState s3 = FSMState.newBuilder()
                     .withName("s3")
                     .withFSMs(childFSMs)
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entering state " + s.getName()
                                 + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS").format(new Date()));
                         s3EnteredF.complete(null);
@@ -2325,7 +2325,7 @@ public class FSMTest {
             var s1EnteredF = new CompletableFuture<Void>();
             State s1 = State.newBuilder()
                     .withName("s1")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entered state " + s.getName());
                         s1EnteredF.complete(null);
                     })
@@ -2333,7 +2333,7 @@ public class FSMTest {
 
             State s2 = State.newBuilder()
                     .withName("s2")
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entered state " + s.getName());
                     })
                     .build();
@@ -2341,7 +2341,7 @@ public class FSMTest {
             Function<Integer, FSM> fsmCreator = (i) -> {
                 State s1i = State.newBuilder()
                         .withName("s1i")
-                        .withOnEntryAction((s, e) -> {
+                        .withOnEntryActions((s, e) -> {
                             System.out.println("cfsm" + i + " entered state " + s.getName());
                             sleepRandom(0, 250);
                         })
@@ -2349,7 +2349,7 @@ public class FSMTest {
 
                 State s2i = State.newBuilder()
                         .withName("s2i")
-                        .withOnEntryAction((s, e) -> {
+                        .withOnEntryActions((s, e) -> {
                             System.out.println("cfsm" + i + " entered state " + s.getName());
                             sleepRandom(0, 250);
                         })
@@ -2381,7 +2381,7 @@ public class FSMTest {
             FSMState s3 = FSMState.newBuilder()
                     .withName("s3")
                     .withFSMs(childFSMs)
-                    .withOnEntryAction((s, e) -> {
+                    .withOnEntryActions((s, e) -> {
                         System.out.println("entering state " + s.getName());
                         s3EnteredF.complete(null);
                     })
@@ -2513,7 +2513,7 @@ public class FSMTest {
 
         Function<String, State> createState = (name) -> State.newBuilder()
                 .withName(name)
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2557,7 +2557,7 @@ public class FSMTest {
 
         FSMState B = FSMState.newBuilder()
                 .withName("B")
-                .withOnEntryAction((s, ev) -> {
+                .withOnEntryActions((s, ev) -> {
                     var msg = "entered state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2658,7 +2658,7 @@ public class FSMTest {
 
         Function<String, State> createState = (name) -> State.newBuilder()
                 .withName(name)
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2677,7 +2677,7 @@ public class FSMTest {
         // create fsm states with nested fsms
         var E = FSMState.newBuilder()
                 .withName("E")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2712,7 +2712,7 @@ public class FSMTest {
 
         var B = FSMState.newBuilder()
                 .withName("B")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2829,12 +2829,12 @@ public class FSMTest {
 
         Function<String, State> createState = (name) -> State.newBuilder()
                 .withName(name)
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2861,12 +2861,12 @@ public class FSMTest {
         // create the nested fsm states
         var E = FSMState.newBuilder()
                 .withName("E")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2906,12 +2906,12 @@ public class FSMTest {
 
         var B = FSMState.newBuilder()
                 .withName("B")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2947,12 +2947,12 @@ public class FSMTest {
         // M with nested FSM and states O, P, Q
         var M = FSMState.newBuilder()
                 .withName("M")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -2986,12 +2986,12 @@ public class FSMTest {
 
         var J = FSMState.newBuilder()
                 .withName("J")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited FSM state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
@@ -3122,12 +3122,12 @@ public class FSMTest {
         // create the states of the fsm
         var C = State.newBuilder()
                 .withName("C")
-                .withOnEntryAction((s, e) -> {
+                .withOnEntryActions((s, e) -> {
                     var msg = "entered state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);
                 })
-                .withOnExitAction((s, e) -> {
+                .withOnExitActions((s, e) -> {
                     var msg = "exited state " + s.getName();
                     System.out.println(msg);
                     list.add(msg);

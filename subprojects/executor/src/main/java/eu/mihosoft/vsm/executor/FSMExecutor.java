@@ -666,7 +666,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                 try {
 
                     // execute action
-                    // action.execute(consumer, evt);
                     fsmLock.unlock();
                     CompletableFuture.runAsync(()->{
                         fsmLock.lock();
@@ -692,20 +691,23 @@ class FSMExecutor implements AsyncFSMExecutor {
                 try {
 
                     // execute entry-action
-                    StateAction entryAction = s.getOnEntryAction();
+                    var entryActions = s.getOnEntryActions();
                     var oldS = s.getOwningFSM().getCurrentState();
-                    if (entryAction != null) {
+
+                    // execute entry actions
+                    if (!entryActions.isEmpty()) {
 
                         try {
                             fsmLock.unlock();
-                            //entryAction.execute(s, evt);
                             CompletableFuture.runAsync(() -> {
-                                fsmLock.lock();
-                                try {
-                                    entryAction.execute(s, evt);
-                                } finally {
-                                    s.getOwningFSM().setCurrentState(s);
-                                    fsmLock.unlock();
+                                for(int i = 0; i < entryActions.size(); i++) {
+                                    var entryAction = entryActions.get(i);
+                                    fsmLock.lock();
+                                    try {
+                                        entryAction.execute(s, evt);
+                                    } finally {
+                                        fsmLock.unlock();
+                                    }
                                 }
                             },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                         } finally {
@@ -714,7 +716,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                     }
 
                     if (!((FSMExecutor)s.getOwningFSM().getExecutor()).executeDoActionOfNewState(evt, oldS, s)) return;
-//                    if (!executeDoActionOfNewState(evt, s, newState)) return;
 
                     // enter children states
                     if(enterAndExit &&  s instanceof FSMState) {
@@ -743,16 +744,19 @@ class FSMExecutor implements AsyncFSMExecutor {
 
             // execute on-entry action
             try {
-                StateAction entryAction = newState.getOnEntryAction();
-                if (entryAction != null) {
+                var entryActions = newState.getOnEntryActions();
+                if (!entryActions.isEmpty()) {
                     try {
                         fsmLock.unlock();
                         CompletableFuture.runAsync(() -> {
-                            fsmLock.lock();
-                            try {
-                                entryAction.execute(newState, evt);
-                            } finally {
-                                fsmLock.unlock();
+                            for(int i = 0; i < entryActions.size(); i++) {
+                                var entryAction = entryActions.get(i);
+                                fsmLock.lock();
+                                try {
+                                    entryAction.execute(newState, evt);
+                                } finally {
+                                    fsmLock.unlock();
+                                }
                             }
                         },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                     } finally {
@@ -779,7 +783,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                     // create a new execute for child fsm if it doesn't exist yet
                     if (childFSM.getExecutor() == null) {
                         newState.getOwningFSM().getExecutor().newChild(childFSM);
-                        //getCaller().getExecutor().newChild(childFSM);
                     }
                     eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
                     executor.reset();
@@ -810,8 +813,8 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     private boolean executeDoActionOfNewState(Event evt, State oldState, State newState) {
         try {
-            StateAction doAction = newState.getDoAction();
-            if(doAction!=null) {
+            var doActions = newState.getDoActions();
+            if(!doActions.isEmpty()) {
                 Runnable doActionDone = ()->{
                     triggerFirst(Event.newBuilder().withName(FSMEvents.DO_ACTION_DONE.getName()).withLocal(true)
                             .withArgs(newState.getName()+":"+System.identityHashCode(newState)).build());
@@ -820,13 +823,16 @@ class FSMExecutor implements AsyncFSMExecutor {
                 try {
                     doActionFuture = new CompletableFuture<>();
                     doActionThread = VirtualThreadUtils.newThread(() -> {
-                        try {
-                            doAction.execute(newState, evt);
-                        } catch (Exception ex) {
-                            handleExecutionError(evt, oldState, newState, ex);
-                            return;
-                        } finally {
-                            //
+                        for(int i = 0; i < doActions.size(); i++) {
+                            var doAction = doActions.get(i);
+                            try {
+                                doAction.execute(newState, evt);
+                            } catch (Exception ex) {
+                                handleExecutionError(evt, oldState, newState, ex);
+                                return;
+                            } finally {
+                                //
+                            }
                         }
                         doActionFuture.complete(null);
                         if (!Thread.currentThread().isInterrupted()) {
@@ -889,11 +895,14 @@ class FSMExecutor implements AsyncFSMExecutor {
             }
 
             try {
-                StateAction exitAction = oldState.getOnExitAction();
+                var exitActions = oldState.getOnExitActions();
 
-                if (exitAction != null) {
+                if (!exitActions.isEmpty()) {
                     CompletableFuture.runAsync(() -> {
-                        exitAction.execute(oldState, evt);
+                        for (int i = 0; i < exitActions.size(); i++) {
+                            var exitAction = exitActions.get(i);
+                            exitAction.execute(oldState, evt);
+                        }
                     },executorService).orTimeout(MAX_EXIT_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
                 }
             } catch (Exception ex) {
