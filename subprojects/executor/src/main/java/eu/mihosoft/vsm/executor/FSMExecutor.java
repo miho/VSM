@@ -826,9 +826,9 @@ class FSMExecutor implements AsyncFSMExecutor {
                             handleExecutionError(evt, oldState, newState, ex);
                             return;
                         } finally {
-                            //
+                            var f = doActionFuture;
+                            if(f!=null)f.complete(null);
                         }
-                        doActionFuture.complete(null);
                         if (!Thread.currentThread().isInterrupted()) {
                             doActionDone.run();
                         }
