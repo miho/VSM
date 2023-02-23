@@ -88,7 +88,7 @@ interface StateChild {
 @InterfaceOnly
 interface WithStateActions {
     @Doc("Action to be executed when entering a state.")
-    StateAction getOnEntryAction();
+    StateAction[] getOnEntryActions();
     @Doc("Action to be executed as long as the owning state machine is currently in this state.")
     StateAction getDoAction();
     @Doc("Action to be executed when exiting a state. ")

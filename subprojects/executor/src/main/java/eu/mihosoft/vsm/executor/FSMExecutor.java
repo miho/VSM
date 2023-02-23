@@ -692,27 +692,28 @@ class FSMExecutor implements AsyncFSMExecutor {
                 try {
 
                     // execute entry-action
-                    StateAction entryAction = s.getOnEntryAction();
                     var oldS = s.getOwningFSM().getCurrentState();
-                    if (entryAction != null) {
+                    var entryActions = s.getOnEntryActions();
+                    for(var entryAction : entryActions) {
+                        if (entryAction != null) {
 
-                        try {
-                            fsmLock.unlock();
-                            //entryAction.execute(s, evt);
-                            CompletableFuture.runAsync(() -> {
+                            try {
+                                fsmLock.unlock();
+                                //entryAction.execute(s, evt);
+                                CompletableFuture.runAsync(() -> {
+                                    fsmLock.lock();
+                                    try {
+                                        entryAction.execute(s, evt);
+                                    } finally {
+                                        s.getOwningFSM().setCurrentState(s);
+                                        fsmLock.unlock();
+                                    }
+                                }, executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                            } finally {
                                 fsmLock.lock();
-                                try {
-                                    entryAction.execute(s, evt);
-                                } finally {
-                                    s.getOwningFSM().setCurrentState(s);
-                                    fsmLock.unlock();
-                                }
-                            },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
-                        } finally {
-                            fsmLock.lock();
+                            }
                         }
                     }
-
                     if (!((FSMExecutor)s.getOwningFSM().getExecutor()).executeDoActionOfNewState(evt, oldS, s)) return;
 //                    if (!executeDoActionOfNewState(evt, s, newState)) return;
 
@@ -743,23 +744,24 @@ class FSMExecutor implements AsyncFSMExecutor {
 
             // execute on-entry action
             try {
-                StateAction entryAction = newState.getOnEntryAction();
-                if (entryAction != null) {
-                    try {
-                        fsmLock.unlock();
-                        CompletableFuture.runAsync(() -> {
+                var entryActions = newState.getOnEntryActions();
+                for (var entryAction : entryActions) {
+                    if (entryAction != null) {
+                        try {
+                            fsmLock.unlock();
+                            CompletableFuture.runAsync(() -> {
+                                fsmLock.lock();
+                                try {
+                                    entryAction.execute(newState, evt);
+                                } finally {
+                                    fsmLock.unlock();
+                                }
+                            }, executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
+                        } finally {
                             fsmLock.lock();
-                            try {
-                                entryAction.execute(newState, evt);
-                            } finally {
-                                fsmLock.unlock();
-                            }
-                        },executorService).orTimeout(MAX_ENTER_ACTION_TIMEOUT, TimeUnit.MILLISECONDS).get();
-                    } finally {
-                        fsmLock.lock();
+                        }
                     }
                 }
-
             } catch (Exception ex) {
                 handleExecutionError(evt, oldState, newState, ex);
                 return;
