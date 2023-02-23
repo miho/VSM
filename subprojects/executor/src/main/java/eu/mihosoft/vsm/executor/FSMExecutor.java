@@ -768,7 +768,6 @@ class FSMExecutor implements AsyncFSMExecutor {
                     // create a new execute for child fsm if it doesn't exist yet
                     if (childFSM.getExecutor() == null) {
                         newState.getOwningFSM().getExecutor().newChild(childFSM);
-                        //getCaller().getExecutor().newChild(childFSM);
                     }
                     eu.mihosoft.vsm.model.FSMExecutor executor = childFSM.getExecutor();
                     executor.reset();
@@ -1084,7 +1083,7 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     private void log(String msg) {
         if(getCaller().isVerbose()) {
-            System.out.println(msg);
+            org.tinylog.Logger.info(msg);
         }
     }
 

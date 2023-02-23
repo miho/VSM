@@ -47,6 +47,9 @@ dependencies {
 
     implementation "eu.mihosoft.asyncutils:asyncutils:${rootProject.commonProps.get("asyncutils.version")}"
 
+    implementation "org.tinylog:tinylog-api:${rootProject.commonProps.get("tinylog.version")}"
+    implementation "org.tinylog:tinylog-impl:${rootProject.commonProps.get("tinylog.version")}"
+
     implementation project(":subprojects:fsm")
 }
 

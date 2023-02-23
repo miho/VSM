@@ -25,6 +25,7 @@
  */
 package eu.mihosoft.vsm.model;
 
+import static java.lang.Thread.currentThread;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
@@ -154,7 +155,7 @@ public class FSMTest {
             fsm.vmf().reflect().propertyByName("currentState").orElseThrow().addChangeListener(change -> {
                 var oldV = (State) change.propertyChange().orElseThrow().oldValue();
                 var newV = (State) change.propertyChange().orElseThrow().newValue();
-                System.out.println(Thread.currentThread() + " > transitioned from " +
+                System.out.println(currentThread() + " > transitioned from " +
                         (oldV == null ? "<undefined>" : oldV.getName()) +
                         " to " +
                         (newV == null ? "<undefined>" : newV.getName()));
@@ -603,7 +604,7 @@ public class FSMTest {
                     } catch (InterruptedException interruptedException) {
                         System.out.println("interrupt do-action-in-state-c");
                         enterExitList.add("interrupt do-action-in-state-c");
-                        Thread.currentThread().interrupt();
+                        currentThread().interrupt();
                     } finally {
                         System.out.println("exit do-action-in-state-c");
                         enterExitList.add("exit do-action-in-state-c");
@@ -1535,7 +1536,7 @@ public class FSMTest {
                             System.out.println("!!! cfsm: exit");
                         } catch (InterruptedException interruptedException) {
                             System.out.println("!!! cfsm: interrupted");
-                            Thread.currentThread().interrupt();
+                            currentThread().interrupt();
                             childFSMStateWasInterrupted.set(true);
                         }
                     })
@@ -1552,7 +1553,7 @@ public class FSMTest {
                             System.out.println("!!! s2: exit");
                         } catch (InterruptedException interruptedException) {
                             System.out.println("!!! s2: interrupt");
-                            Thread.currentThread().interrupt();
+                            currentThread().interrupt();
                             s2WasInterrupted.set(true);
                         }
                     })
@@ -2421,7 +2422,7 @@ public class FSMTest {
                     : AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS;
 
             System.out.println("> running executor with " + mode.name() + ", n-child-fsms: " + numberOFChildren);
-            var executor = FSMExecutors.newAsyncExecutor(fsm, AsyncFSMExecutor.ExecutionMode.PARALLEL_REGIONS);
+            var executor = FSMExecutors.newAsyncExecutor(fsm, mode);
 
             executor.startAsync();
 
@@ -3152,6 +3153,243 @@ public class FSMTest {
         // |    +---+       +---+       +---+           |
         // |                                            |
         // +--------------------------------------------+
+
+    }
+
+    @Test(timeout = 5_000)
+    public void simpleToggleStateAndCountTest() {
+
+        // +---------------+             +----------------+            +-----+
+        // | A             |             | B              |            | C   |
+        // |               <-------------+                +------------>     |
+        // | do: wait(100);| state-done/ | do: wait(100); | state-done |     |
+        // |     count++;  |   count<n   |                |            +-----+
+        // +-------+-------+             +--------^-------+
+        //         |                              |
+        //         +------------------------------+
+        //                   state-done
+
+        // list
+        var list = new CopyOnWriteArrayList<String>();
+
+        // create storage
+        var storage = Storage.newInstance();
+        int n = 10;
+        storage.storeValue("n", n);
+
+        // create the states of the fsm
+
+        var I = State.newBuilder()
+                .withName("I")
+                .withOnEntryActions((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                    storage.storeValue("count", 0);
+                })
+                .withOnExitActions((s, e) -> {
+                    var msg = "exited state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        var A = State.newBuilder()
+                .withName("A")
+                .withOnEntryActions((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withDoAction((s, e) -> {
+                    var msg = "do action in state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                    try {
+                        Thread.sleep(100);
+                        storage.updateValue("count", (id, count) -> (int)count + 1);
+                    } catch (InterruptedException ex) {
+                        currentThread().interrupt();
+                    }
+                })
+                .withOnExitActions((s, e) -> {
+                    var msg = "exited state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        var B = State.newBuilder()
+                .withName("B")
+                .withOnEntryActions((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withDoAction((s, e) -> {
+                    var msg = "do action in state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ex) {
+                        currentThread().interrupt();
+                    }
+                })
+                .withOnExitActions((s, e) -> {
+                    var msg = "exited state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        var C = State.newBuilder()
+                .withName("C")
+                .withOnEntryActions((s, e) -> {
+                    var msg = "entered state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .withOnExitActions((s, e) -> {
+                    var msg = "exited state " + s.getName();
+                    System.out.println(msg);
+                    list.add(msg);
+                })
+                .build();
+
+        // create the fsm
+        var root = FSM.newBuilder()
+                .withName("root")
+                .withInitialState(I)
+                .withOwnedState(I,A, B, C)
+                .withFinalState(C)
+                .withTransitions(
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(I)
+                                .withTarget(A)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(A)
+                                .withTarget(B)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(C)
+                                .withTarget(A)
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(B)
+                                .withTarget(A)
+                                .withGuard((s, e) -> (int)storage.getValue("count").get() < (int)storage.getValue("n").get())
+                                .build(),
+                        Transition.newBuilder()
+                                .withTrigger(FSMExecutor.FSMEvents.STATE_DONE.getName())
+                                .withSource(B)
+                                .withTarget(C)
+                                .build()
+                )
+                .withVerbose(true)
+                .build();
+
+        // create the executor
+        var executor = FSMExecutors.newAsyncExecutor(root, MODE);
+        storage.addListener(executor);
+        executor.startAndWait();
+
+        Assert.assertEquals(n, storage.getValue("count").get());
+
+        // assert the list
+        Assert.assertEquals(List.of(
+                "entered state I",
+                "exited state I",
+
+                // #1
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #2
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #3
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #4
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #5
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #6
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #7
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #8
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #9
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                // #10
+                "entered state A",
+                "do action in state A",
+                "exited state A",
+                "entered state B",
+                "do action in state B",
+                "exited state B",
+
+                "entered state C",
+                "exited state C"
+        ), list);
+
 
     }
 }
