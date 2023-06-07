@@ -22,7 +22,7 @@
  */
 package eu.mihosoft.vsm.executor;
 
-import eu.mihosoft.asyncutils.VirtualThreadUtils;
+//import eu.mihosoft.asyncutils.VirtualThreadUtils;
 import eu.mihosoft.vsm.model.*;
 
 import java.text.SimpleDateFormat;
@@ -53,8 +53,8 @@ class FSMExecutor implements AsyncFSMExecutor {
 
     private final AsyncFSMExecutor.ExecutionMode mode;
 
-    private final ExecutorService executorService
-            = Executors.newCachedThreadPool(VirtualThreadUtils.newThreadFactory(true));
+    private final ExecutorService executorService = Executors.newScheduledThreadPool(10);
+//            = Executors.newCachedThreadPool(VirtualThreadUtils.newThreadFactory(true));
 
     private static final long MAX_EVT_CONSUMED_ACTION_TIMEOUT = 10_000 /*ms*/;
     private static final long MAX_ENTER_ACTION_TIMEOUT        = 10_000 /*ms*/;
@@ -510,7 +510,7 @@ class FSMExecutor implements AsyncFSMExecutor {
                 }
             };
             if(mode == ExecutionMode.PARALLEL_REGIONS) {
-                Thread thread = VirtualThreadUtils.newThread(r);
+                Thread thread = new Thread(r);//VirtualThreadUtils.newThread(r);
                 thread.start();
                 threads.add(thread);
             } else if(mode == ExecutionMode.SERIAL_REGIONS) {
@@ -807,7 +807,8 @@ class FSMExecutor implements AsyncFSMExecutor {
 
                 try {
                     doActionFuture = new CompletableFuture<>();
-                    doActionThread = VirtualThreadUtils.newThread(() -> {
+                    doActionThread = new Thread(//VirtualThreadUtils.newThread(
+                        () -> {
                         try {
                             doAction.execute(newState, evt);
                         } catch (Exception ex) {
@@ -1025,7 +1026,9 @@ class FSMExecutor implements AsyncFSMExecutor {
         getCaller().setRunning(true);
 
         var f = new CompletableFuture();
-        this.executionThread = VirtualThreadUtils.newThread(()->{
+        this.executionThread = new Thread(
+                //VirtualThreadUtils.newThread(
+                ()->{
             try {
                 start_int();
                 f.complete(null);
