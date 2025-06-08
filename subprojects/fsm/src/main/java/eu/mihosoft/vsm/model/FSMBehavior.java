@@ -23,7 +23,17 @@
 package eu.mihosoft.vsm.model;
 
 import eu.mihosoft.vmf.runtime.core.DelegatedBehaviorBase;
+import eu.mihosoft.vsm.model.Event;
 
 public class FSMBehavior extends DelegatedBehaviorBase<FSM> {
 
+    /**
+     * Creates a new event.
+     * @param name event name
+     * @param args event arguments
+     * @return new event
+     */
+    public static Event newEvent(String name, Object... args) {
+        return Event.newBuilder().withName(name).withArgs(args).build();
+    }
 }
